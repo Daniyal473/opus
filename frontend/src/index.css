@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Rental Console Color Scheme */
+  --color-primary: #008080;
+  --color-light-teal-fill: #E0F7FA;
+  --color-light-gray: #F0F0F0;
+  --color-dark-text: #333333;
+  --color-checking-out: #FF8800;
+  --color-maintenance: #CC0000;
+  --right-sidebar-width: 450px;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #F7F7F7;
+  min-height: 100vh;
+  color: var(--color-dark-text);
+}
+
+.app {
+  min-height: 100vh;
+}

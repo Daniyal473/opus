@@ -1,0 +1,151 @@
+/* Active Building/Floor Highlighting */
+.building-item.active {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+    font-weight: 700;
+}
+
+.floor-item.active {
+    background-color: var(--color-light-gray);
+    border-left: 5px solid var(--color-primary);
+    padding-left: 10px !important;
+    font-weight: 700;
+}
+
+/* Grid Layout - ALWAYS HORIZONTAL (3 columns) */
+.grid-container {
+    display: grid;
+    grid-template-areas: "left center right";
+    grid-template-columns: 180px 1fr 450px;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.left-sidebar {
+    grid-area: left;
+    max-height: 100vh;
+}
+
+.room-grid {
+    grid-area: center;
+}
+
+.right-sidebar {
+    grid-area: right;
+}
+
+/* Room Grid - Force 3 columns */
+.room-grid>div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+/* Room Card Base Styles */
+.room-card {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    height: 8rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    justify-content: flex-start;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.room-card.active {
+    box-shadow: 0 0 0 2px var(--color-primary), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Room Card Status Styles */
+.status-occupied {
+    background-color: var(--color-light-teal-fill);
+    border-left: 5px solid var(--color-primary);
+    padding-left: 11px !important;
+    color: var(--color-dark-text);
+}
+
+.status-checking-out {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-left: 5px solid var(--color-checking-out);
+    padding-left: 11px !important;
+}
+
+.status-maintenance {
+    background-color: white;
+    border-left: 5px solid var(--color-maintenance);
+}
+
+.status-unoccupied {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+}
+
+/* Room Card Content */
+.room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.25rem;
+}
+
+.room-number {
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+.room-type-badge {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 400;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    color: #374151;
+}
+
+.secondary-bg-white {
+    background-color: white;
+}
+
+.secondary-bg-gray {
+    background-color: #f3f4f6;
+}
+
+.room-size {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #374151;
+}
+
+.room-details {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: #6b7280;
+}
+
+.room-status {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    margin-top: auto;
+    font-weight: 500;
+}
+
+/* Status text colors */
+.status-text {
+    color: var(--color-primary);
+}
+
+.text-gray-400 {
+    color: #9ca3af;
+}
+
+/* Mobile adjustments if needed */
+@media (max-width: 767px) {
+    .grid-container {
+        grid-template-columns: 150px 1fr 300px;
+    }
+}
