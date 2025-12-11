@@ -11,6 +11,8 @@ export interface RoomData {
     manager: string;
     lease: string;
     occupancy: string;
+    parking: string; // New field
+    visits: number; // New field
 }
 
 export interface PropertyInfo {
@@ -43,4 +45,16 @@ export interface RoomCardData {
     manager: string;
     lease: string;
     occupancy: string;
+    parking: string; // New field
+    visits: number; // New field
+}
+
+export interface Ticket {
+    id: string;
+    type: 'Guest Request' | 'Cleaning' | 'Maintenance';
+    title: string;
+    status: 'Open' | 'In Progress' | 'Closed';
+    priority: 'Low' | 'Medium' | 'High';
+    created: string;
+    description: string;
 }
