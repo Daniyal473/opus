@@ -17,6 +17,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [resetToken, setResetToken] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Check for reset token in URL
   useEffect(() => {
@@ -45,6 +46,7 @@ function App() {
 
   const handleLogout = useCallback(() => {
     sessionStorage.clear();
+    setCurrentUser(null);
     setCurrentPage('signin');
   }, []);
 
@@ -78,6 +80,15 @@ function App() {
   useEffect(() => {
     const savedPage = sessionStorage.getItem('currentPage');
     const lastActivity = sessionStorage.getItem('lastActivity');
+    const savedUser = sessionStorage.getItem('user');
+
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Failed to parse saved user", e);
+      }
+    }
 
     if (savedPage) {
       if (savedPage === 'dashboard' || savedPage === 'admin') {
@@ -110,10 +121,14 @@ function App() {
         body: JSON.stringify({ username, password }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         setIsLoading(true);
         sessionStorage.setItem('lastActivity', Date.now().toString());
         sessionStorage.setItem('currentPage', 'dashboard');
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+        setCurrentUser(data.user);
         setTimeout(() => {
           setCurrentPage('dashboard');
           setIsLoading(false);
@@ -190,7 +205,11 @@ function App() {
   return (
     <div className="app">
       {currentPage === 'dashboard' ? (
-        <RentalConsole onLogout={handleLogout} onAdminPanelClick={() => handlePageChange('admin')} />
+        <RentalConsole
+          onLogout={handleLogout}
+          onAdminPanelClick={() => handlePageChange('admin')}
+          userRole={currentUser?.role}
+        />
       ) : currentPage === 'admin' ? (
         <AdminDashboard
           onLogout={handleLogout}

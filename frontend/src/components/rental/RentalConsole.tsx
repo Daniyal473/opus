@@ -10,12 +10,29 @@ import './rental.css';
 interface RentalConsoleProps {
     onLogout?: () => void;
     onAdminPanelClick?: () => void;
+    userRole?: string;
 }
 
-export function RentalConsole({ onLogout, onAdminPanelClick }: RentalConsoleProps) {
+export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalConsoleProps) {
     const [selectedBuilding, setSelectedBuilding] = useState('opus');
     const [selectedFloor, setSelectedFloor] = useState('all');
     const [selectedRoom, setSelectedRoom] = useState<RoomCardData | null>(null);
+
+    // Check if user has admin access (handle case and whitespace)
+    console.log("RentalConsole received userRole:", userRole);
+    const normalizedRole = userRole?.trim().toLowerCase();
+    const showAdminPanel = normalizedRole === 'super-admin' || normalizedRole === 'super admin' || normalizedRole === 'admin';
+
+    // ... (rest of code)
+    // In JSX:
+    /*
+                    <BuildingSelector
+                        buildings={buildings}
+                        selectedBuilding={selectedBuilding}
+                        onBuildingChange={handleBuildingChange}
+                        onAdminPanelClick={showAdminPanel ? onAdminPanelClick : undefined}
+                    />
+    */
 
     // Generate room cards based on selected floor
     const roomCards = useMemo<RoomCardData[]>(() => {
@@ -60,7 +77,7 @@ export function RentalConsole({ onLogout, onAdminPanelClick }: RentalConsoleProp
                         buildings={buildings}
                         selectedBuilding={selectedBuilding}
                         onBuildingChange={handleBuildingChange}
-                        onAdminPanelClick={onAdminPanelClick}
+                        onAdminPanelClick={showAdminPanel ? onAdminPanelClick : undefined}
                     />
                     <FloorSelector
                         floors={floors}
