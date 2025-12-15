@@ -11,9 +11,16 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+TEABLE_API_URL = os.getenv('TEABLE_API_URL')
+TEABLE_API_TOKEN = os.getenv('TEABLE_API_TOKEN')
 
 
 # Quick-start development settings - unsuitable for production
@@ -129,10 +136,11 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite default port
-    "http://localhost:3000",  # Alternative React port
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",  # Vite default port
+#     "http://localhost:3000",  # Alternative React port
+# ]
+CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -145,4 +153,22 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
 }
+
+# Email Configuration
+# For Gmail: Use App Password (not regular password)
+# 1. Go to Google Account > Security > 2-Step Verification
+# 2. Scroll to "App passwords" and generate one
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')  # Your Gmail address
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')  # Your Gmail App Password
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER', 'noreply@example.com')
+
+# n8n Webhook Configuration (for sending emails without storing credentials)
+N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', '')
+
+# Password Reset Log Table URL
+PASSWORD_RESET_LOG_URL = os.getenv('PASSWORD_RESET_LOG_URL', '')
 

@@ -15,6 +15,12 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+    
+    # Set default port to 8000 if runserver is called without port specification
+    if len(sys.argv) > 1 and sys.argv[1] == 'runserver':
+        if len(sys.argv) == 2:  # No port specified
+            sys.argv.append('0.0.0.0:8000')
+    
     execute_from_command_line(sys.argv)
 
 

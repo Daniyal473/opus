@@ -1,53 +1,46 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { BuildingSelector } from './BuildingSelector';
 import { FloorSelector } from './FloorSelector';
 import { RoomGrid } from './RoomGrid';
 import { PropertySidebar } from './PropertySidebar';
-import { roomData, defaultPropertyInfo } from '../../data/mockRoomData';
-import type { RoomCardData, Floor } from '../../types/rental';
-import opusLogo from '../../assets/opus-logo.jpg';
-import { fetchApartmentData, extractFloors, transformRecordToRoomCard, type TeableRecord } from '../../services/teable';
+import { buildings, floors, roomData, defaultPropertyInfo } from '../../data/mockRoomData';
+import type { RoomCardData } from '../../types/rental';
 import './rental.css';
 
-export function RentalConsole() {
-    const [floors, setFloors] = useState<Floor[]>([{ code: 'all', name: 'All' }]);
-    const [allRecords, setAllRecords] = useState<TeableRecord[]>([]);
+interface RentalConsoleProps {
+    onLogout?: () => void;
+    onAdminPanelClick?: () => void;
+}
+
+export function RentalConsole({ onLogout, onAdminPanelClick }: RentalConsoleProps) {
+    const [selectedBuilding, setSelectedBuilding] = useState('opus');
     const [selectedFloor, setSelectedFloor] = useState('all');
     const [selectedRoom, setSelectedRoom] = useState<RoomCardData | null>(null);
 
-    // Fetch floors and rooms from API
-    useEffect(() => {
-        const loadData = async () => {
-            const records = await fetchApartmentData();
-            setAllRecords(records);
-
-            const uniqueFloors = extractFloors(records);
-            const floorObjects: Floor[] = [
-                { code: 'all', name: 'All' },
-                ...uniqueFloors.map(f => ({
-                    code: f,
-                    name: f
-                }))
-            ];
-
-            setFloors(floorObjects);
-        };
-
-        loadData();
-    }, []);
-
-    // Generate room cards based on selected floor from API data
+    // Generate room cards based on selected floor
     const roomCards = useMemo<RoomCardData[]>(() => {
-        // 1. Filter records by floor
-        const filteredRecords = selectedFloor === 'all'
-            ? allRecords
-            : allRecords.filter(r => r.fields['Floor'] === selectedFloor);
+        const floorsToRender = selectedFloor === 'all'
+            ? floors.filter(f => f.code !== 'all').map(f => f.code)
+            : [selectedFloor];
 
-        // 2. Transform records to RoomCardData
-        // Sort by Apartment Number naturally
-        const cards = filteredRecords.map(transformRecordToRoomCard);
+        const cards: RoomCardData[] = [];
+        floorsToRender.forEach(floorCode => {
+            roomData.forEach((data, index) => {
+                const roomNumber = `${floorCode}-${(10 + index).toString()}`;
+                cards.push({
+                    id: roomNumber,
+                    ...data,
+                });
+            });
+        });
 
-        return cards.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
-    }, [selectedFloor, allRecords]);
+        return cards;
+    }, [selectedFloor]);
+
+    const handleBuildingChange = (buildingId: string) => {
+        setSelectedBuilding(buildingId);
+        setSelectedRoom(null);
+    };
 
     const handleFloorChange = (floorCode: string) => {
         setSelectedFloor(floorCode);
@@ -63,17 +56,17 @@ export function RentalConsole() {
             {/* Left Sidebar */}
             <aside className="left-sidebar bg-white border-r border-gray-300 shadow-sm overflow-y-auto">
                 <div className="p-0">
-                    <div className="p-4 flex justify-center border-b border-gray-200">
-                        <img
-                            src={opusLogo}
-                            alt="Opus Logo"
-                            className="h-16 w-auto object-contain"
-                        />
-                    </div>
+                    <BuildingSelector
+                        buildings={buildings}
+                        selectedBuilding={selectedBuilding}
+                        onBuildingChange={handleBuildingChange}
+                        onAdminPanelClick={onAdminPanelClick}
+                    />
                     <FloorSelector
                         floors={floors}
                         selectedFloor={selectedFloor}
                         onFloorChange={handleFloorChange}
+                        onLogout={onLogout}
                     />
                 </div>
             </aside>
@@ -95,4 +88,3 @@ export function RentalConsole() {
         </div>
     );
 }
-
