@@ -191,7 +191,17 @@ def login_proxy(request):
         'Content-Type': 'application/json'
     }
     
+    debug_logs = []
+    
     try:
+        # Debugging environment - verify loading
+        if not teable_url:
+            debug_logs.append("CRITICAL: TEABLE_API_URL is missing or empty")
+        if not teable_token:
+            debug_logs.append("CRITICAL: TEABLE_API_TOKEN is missing or empty")
+            
+        debug_logs.append(f"login_proxy called for user: {username}")
+        
         # Fetch records to find user
         # Note: For production, use server-side filtering. 
         # For now, fetching all and filtering in Python is reliable for the prototype.
@@ -200,6 +210,16 @@ def login_proxy(request):
         if response.status_code == 200:
             data = response.json()
             records = data.get('records', [])
+            debug_logs.append(f"Teable response 200. Records fetched: {len(records)}")
+            
+            if records:
+                # Log available fields from the first record to check for naming issues
+                first_fields = records[0].get('fields', {}).keys()
+                debug_logs.append(f"Available fields in first record: {list(first_fields)}")
+                
+                # Log all emails found (temporarily for debugging)
+                found_emails = [r.get('fields', {}).get('Email') for r in records]
+                debug_logs.append(f"Emails in DB: {found_emails}")
             
             user_found = None
             for record in records:
@@ -209,10 +229,13 @@ def login_proxy(request):
                 db_password = fields.get('Password ')
                 
                 if db_email and db_email.lower() == username.lower():
+                    debug_logs.append(f"Found user with email: {db_email}")
+                    
                     # -----------------------------------------------------
                     # Check Password Reset Log Table for newer password
                     # -----------------------------------------------------
                     actual_password_to_check = db_password # Default to main table password
+                    debug_logs.append(f"Main table password present: {bool(db_password)}")
                     
                     try:
                         log_url = settings.PASSWORD_RESET_LOG_URL
@@ -230,23 +253,32 @@ def login_proxy(request):
                                     latest_log_pass = latest_log.get('fields', {}).get('Password')
                                     if latest_log_pass:
                                         actual_password_to_check = latest_log_pass
-                    except Exception:
+                                        debug_logs.append("Using password from Reset Log table")
+                    except Exception as e:
+                        debug_logs.append(f"WARN: Failed to check password log: {e}")
                         pass
                     
                     # -----------------------------------------------------
 
                     # Decrypt the stored password for comparison
                     decrypted_db_pass = decrypt_password(actual_password_to_check)
+                    debug_logs.append(f"Decryption result: {'Success' if decrypted_db_pass else 'Failed/None'}")
                     
                     match = False
                     if decrypted_db_pass:
                          # It was encrypted, check against input
                          if decrypted_db_pass == password:
                              match = True
+                             debug_logs.append("Password matched via decryption")
+                         else: 
+                             debug_logs.append("Password mismatch (Decrypted)")
                     else:
                          # Fallback: Check if it matches as plain text (legacy support)
                          if actual_password_to_check == password:
                              match = True
+                             debug_logs.append("Password matched via plain text fallback")
+                         else:
+                             debug_logs.append("Password mismatch (Plain Text)")
                     
                     if match:
                         user_found = {
@@ -260,12 +292,15 @@ def login_proxy(request):
             if user_found:
                 return Response({'message': 'Login successful', 'user': user_found}, status=200)
             else:
-                return Response({'error': 'Invalid credentials'}, status=401)
+                return Response({'error': 'Invalid credentials', 'debug_log': debug_logs}, status=401)
         else:
-            return Response({'error': 'Failed to query Teable', 'details': response.text}, status=response.status_code)
+            return Response({'error': 'Failed to query Teable', 'details': response.text, 'debug_log': debug_logs}, status=response.status_code)
             
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        import traceback
+        print("CRITICAL ERROR IN LOGIN_PROXY:")
+        traceback.print_exc()
+        return Response({'error': f'Internal Server Error: {str(e)}'}, status=500)
 @api_view(['PATCH'])
 def update_user_proxy(request, pk):
     """

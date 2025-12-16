@@ -172,3 +172,5 @@ N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', '')
 # Password Reset Log Table URL
 PASSWORD_RESET_LOG_URL = os.getenv('PASSWORD_RESET_LOG_URL', '')
 
+# Trigger reload for env update
+

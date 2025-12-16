@@ -134,7 +134,12 @@ function App() {
           setIsLoading(false);
         }, 300);
       } else {
-        setLoginError('Invalid email or password');
+        if (data.debug_log) {
+          console.log("LOGIN DEBUG LOGS:", data.debug_log);
+          setLoginError(`Login failed. Check console for details. (Server: ${data.error})`);
+        } else {
+          setLoginError('Invalid email or password');
+        }
       }
     } catch (error) {
       setToast({ message: 'An error occurred during login', type: 'error' });
