@@ -13,6 +13,7 @@ export interface RoomData {
     occupancy: string;
     parking: string; // New field
     visits: number; // New field
+    apartmentId: number; // Correct internal ID from API
 }
 
 export interface PropertyInfo {
@@ -47,14 +48,27 @@ export interface RoomCardData {
     occupancy: string;
     parking: string; // New field
     visits: number; // New field
+    apartmentId: number; // Correct internal ID from API
 }
 
 export interface Ticket {
     id: string;
-    type: 'Guest Request' | 'Cleaning' | 'Maintenance';
+    type: string;
     title: string;
     status: 'Open' | 'In Progress' | 'Closed';
     priority: 'Low' | 'Medium' | 'High';
     created: string;
     description: string;
+    occupancy?: string;
+    agent?: string; // Assigned agent
+    // New structure
+    guests?: {
+        name: string;
+        cnic: string;
+        cnicExpiry: string;
+        attachments: File[];
+    }[];
+    // Retain legacy fields optional for compatibility if needed, but preferably clean up
+    arrival?: string;
+    departure?: string;
 }

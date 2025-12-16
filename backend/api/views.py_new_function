@@ -1,0 +1,42 @@
+
+@api_view(['GET'])
+def get_tickets(request):
+    TEABLE_TICKETS_URL = 'https://teable.namuve.com/api/table/tblt7O90EhETDjXraHk/record'
+    try:
+        # Check for apartment_id filter
+        apartment_id = request.query_params.get('apartment_id')
+        
+        response = requests.get(TEABLE_TICKETS_URL, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}'
+        })
+        response.raise_for_status()
+        data = response.json()
+        
+        tickets = []
+        for record in data.get('records', []):
+            fields = record.get('fields', {})
+            
+            # Filter by apartment_id if provided
+            # Note: Apartment ID is stored as number in Teable
+            if apartment_id:
+                rec_apt_id = fields.get('Apartment ID ')
+                # Handle both string and int comparison safely
+                if str(rec_apt_id) != str(apartment_id):
+                    continue
+            
+            # Map fields to frontend Ticket interface
+            ticket = {
+                'id': str(fields.get('ID ')), # Convert to string for frontend
+                'type': fields.get('Ticket Type', 'Unknown'),
+                'title': fields.get('Title', 'No Title'),
+                'status': fields.get('Status ', 'Open'),
+                'priority': fields.get('Priority', 'Low'),
+                'created': fields.get('Created Time '),
+                'description': fields.get('Purpose', ''),
+            }
+            tickets.append(ticket)
+            
+        return Response({'tickets': tickets})
+    except requests.RequestException as e:
+        print(f"Error fetching tickets from Teable: {e}")
+        return Response({'error': 'Failed to fetch tickets'}, status=500)

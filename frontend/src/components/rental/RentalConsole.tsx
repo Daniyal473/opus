@@ -18,6 +18,7 @@ export function RentalConsole() {
     useEffect(() => {
         const loadData = async () => {
             const records = await fetchApartmentData();
+            console.log('Raw Records from API:', records); // Debug log
             setAllRecords(records);
 
             const uniqueFloors = extractFloors(records);
