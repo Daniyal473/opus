@@ -1,0 +1,46 @@
+# Environment variables
+.env
+*.env
+
+# Old Node.js files (not needed for Django app)
+server.js
+package.json
+package-lock.json
+node_modules/
+
+# Old frontend files (now embedded in app.py)
+public/index.html
+public/script.js
+public/style.css
+public/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/static/
+/media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
