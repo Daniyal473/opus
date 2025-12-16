@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { BuildingSelector } from './BuildingSelector';
 import { FloorSelector } from './FloorSelector';
 import { RoomGrid } from './RoomGrid';
 import { PropertySidebar } from './PropertySidebar';
-import { buildings, floors, roomData, defaultPropertyInfo } from '../../data/mockRoomData';
+import { buildings, defaultPropertyInfo } from '../../data/mockRoomData';
+import { fetchApartmentData, extractFloors, transformRecordToRoomCard } from '../../services/teable';
 import type { RoomCardData } from '../../types/rental';
 import './rental.css';
 
@@ -17,42 +18,52 @@ export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalC
     const [selectedBuilding, setSelectedBuilding] = useState('opus');
     const [selectedFloor, setSelectedFloor] = useState('all');
     const [selectedRoom, setSelectedRoom] = useState<RoomCardData | null>(null);
+    const [allRecords, setAllRecords] = useState<any[]>([]);
 
     // Check if user has admin access (handle case and whitespace)
-    console.log("RentalConsole received userRole:", userRole);
     const normalizedRole = userRole?.trim().toLowerCase();
     const showAdminPanel = normalizedRole === 'super-admin' || normalizedRole === 'super admin' || normalizedRole === 'admin';
 
-    // ... (rest of code)
-    // In JSX:
-    /*
-                    <BuildingSelector
-                        buildings={buildings}
-                        selectedBuilding={selectedBuilding}
-                        onBuildingChange={handleBuildingChange}
-                        onAdminPanelClick={showAdminPanel ? onAdminPanelClick : undefined}
-                    />
-    */
+    // Fetch floors and rooms from API
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const records = await fetchApartmentData();
+                setAllRecords(records);
+            } catch (error) {
+                console.error("Failed to load apartment data:", error);
+            }
+        };
+        loadData();
+    }, []);
 
-    // Generate room cards based on selected floor
+    // Derive floors from data
+    const apiFloors = useMemo(() => {
+        const extracted = extractFloors(allRecords);
+        // Map to format expected by FloorSelector
+        // Selector expects { code: string, name: string }
+        const floorOptions = [
+            { code: 'all', name: 'All Floors' },
+            ...extracted.map(f => ({ code: f, name: f }))
+        ];
+        return floorOptions;
+    }, [allRecords]);
+
+    // Generate room cards from API records
     const roomCards = useMemo<RoomCardData[]>(() => {
-        const floorsToRender = selectedFloor === 'all'
-            ? floors.filter(f => f.code !== 'all').map(f => f.code)
-            : [selectedFloor];
+        if (!allRecords.length) return [];
 
-        const cards: RoomCardData[] = [];
-        floorsToRender.forEach(floorCode => {
-            roomData.forEach((data, index) => {
-                const roomNumber = `${floorCode}-${(10 + index).toString()}`;
-                cards.push({
-                    id: roomNumber,
-                    ...data,
-                });
-            });
-        });
+        let filteredRecords = allRecords;
 
-        return cards;
-    }, [selectedFloor]);
+        // Filter by floor
+        if (selectedFloor !== 'all') {
+            // Use exact match assuming extractFloors returns values that match record fields
+            filteredRecords = allRecords.filter(r => r.fields['Floor'] == selectedFloor);
+        }
+
+        // Transform to RoomCardData
+        return filteredRecords.map(transformRecordToRoomCard);
+    }, [allRecords, selectedFloor]);
 
     const handleBuildingChange = (buildingId: string) => {
         setSelectedBuilding(buildingId);
@@ -80,7 +91,7 @@ export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalC
                         onAdminPanelClick={showAdminPanel ? onAdminPanelClick : undefined}
                     />
                     <FloorSelector
-                        floors={floors}
+                        floors={apiFloors}
                         selectedFloor={selectedFloor}
                         onFloorChange={handleFloorChange}
                         onLogout={onLogout}

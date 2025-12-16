@@ -16,7 +16,7 @@
 .grid-container {
     display: grid;
     grid-template-areas: "left center right";
-    grid-template-columns: 180px 1fr 450px;
+    grid-template-columns: 120px 1fr 400px;
     height: 100vh;
     overflow: hidden;
 }

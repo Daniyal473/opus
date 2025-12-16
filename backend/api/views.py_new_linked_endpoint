@@ -1,0 +1,47 @@
+@api_view(['GET'])
+def get_linked_records(request):
+    try:
+        ticket_id = request.query_params.get('ticket_id')
+        ticket_type = request.query_params.get('type')
+        
+        if not ticket_id:
+             return Response({'error': 'Ticket ID is required'}, status=400)
+
+        # Determine which table to query based on ticket type
+        if ticket_type == 'In/Out':
+             # Guest Table
+             TEABLE_URL = 'https://teable.namuve.com/api/table/tblRmHEtBZSwi7HoTCz/record'
+             # Search param structure: ?search=TICKET_ID&search=Ticket+ID+&search=true
+             # Params must be passed exactly as requested to filter by Ticket ID column
+             params = [
+                 ('search', ticket_id),
+                 ('search', 'Ticket ID '), # Field name
+                 ('search', 'true') # Exact match? or enabled?
+             ]
+        else:
+             # Add more types later if needed (e.g., Worker table for Maintenance)
+             return Response({'records': []})
+
+        response = requests.get(TEABLE_URL, params=params, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}'
+        })
+        response.raise_for_status()
+        data = response.json()
+        
+        records = []
+        for record in data.get('records', []):
+            fields = record.get('fields', {})
+            # Map based on type
+            if ticket_type == 'In/Out':
+                 records.append({
+                     'id': record.get('id'),
+                     'name': fields.get('Name '),
+                     'cnic': fields.get('CNIC / Passport'),
+                     # Add attachments if needed
+                 })
+        
+        return Response({'records': records})
+
+    except requests.RequestException as e:
+        print(f"Error fetching linked records: {e}")
+        return Response({'error': 'Failed to fetch linked records'}, status=500)

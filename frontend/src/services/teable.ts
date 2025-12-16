@@ -1,8 +1,7 @@
 import axios from 'axios';
 import type { RoomCardData, RoomStatus } from '../types/rental';
 
-const TEABLE_API_URL = 'https://teable.namuve.com/api/table/tblW8KQtEUKhIyY4ARm/record';
-const TEABLE_TOKEN = 'teable_accns9D6q7zXSzmnz8T_6yrrJPuyniWe1otvicokIDXoV3zHZJk9CiBkm1M/nIw=';
+const TEABLE_API_URL = 'http://127.0.0.1:8000/api/apartments/';
 
 // Field Names (API returns names by default)
 const FIELDS = {
@@ -14,7 +13,8 @@ const FIELDS = {
     OCCUPANCY: 'Occupancy',
     PARKING_ALLOWED: 'Parking Allowed',
     START_DATE: 'Start Date',
-    END_DATE: 'End Date'
+    END_DATE: 'End Date',
+    APARTMENT_ID: 'Apartment ID'
 };
 
 export interface TeableRecord {
@@ -30,11 +30,7 @@ export interface TeableResponse {
 
 export const fetchApartmentData = async (): Promise<TeableRecord[]> => {
     try {
-        const response = await axios.get<TeableResponse>(TEABLE_API_URL, {
-            headers: {
-                'Authorization': `Bearer ${TEABLE_TOKEN}`
-            }
-        });
+        const response = await axios.get<TeableResponse>(TEABLE_API_URL);
         return response.data.records;
     } catch (error) {
         console.error('Error fetching data from Teable:', error);
@@ -95,6 +91,7 @@ export const transformRecordToRoomCard = (record: TeableRecord): RoomCardData =>
         lease: category.includes('Short') ? 'Short-term' : category.includes('Long') ? 'Long-term' : 'Owner',
         occupancy: fields[FIELDS.OCCUPANCY] || '0 / 3',
         parking: fields[FIELDS.PARKING_ALLOWED] || 'No', // Map parking
-        visits: 0 // Default visits
+        visits: 0, // Default visits
+        apartmentId: fields['Apartment ID'] // Map internal ID direct string
     };
 };

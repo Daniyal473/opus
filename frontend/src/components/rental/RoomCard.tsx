@@ -9,58 +9,70 @@ interface RoomCardProps {
 export function RoomCard({ room, isActive, onClick }: RoomCardProps) {
     return (
         <div
-            className={`room-card bg-white ${isActive ? 'active' : ''}`}
+            className={`bg-white rounded-lg shadow-md border-l-4 border-teal-500 w-full cursor-pointer transition-all ${isActive ? 'ring-2 ring-teal-600 shadow-lg' : 'hover:shadow-lg'
+                }`}
             onClick={onClick}
         >
-            <div className="room-header">
-                <span className="room-number">{room.id}</span>
-                <span className="room-type-badge secondary-bg-gray">{room.type}</span>
+            {/* Header */}
+            <div className="p-2 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-gray-800">{room.id}</h2>
+                    <span className="bg-teal-100 text-teal-800 text-xs font-medium px-2 py-1 rounded">{room.type}</span>
+                </div>
             </div>
 
-            {/* Metrics Grid - Compact 4-column layout */}
-            <div className="mt-3 space-y-3">
-                {/* Tickets Row */}
+            {/* Content */}
+            <div className="p-2 space-y-2">
+                {/* Tickets */}
                 <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tickets</div>
-                    <div className="grid grid-cols-4 gap-1">
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">Active</span>
-                            <span className="text-base font-bold text-gray-800 leading-none">5/3</span>
+                    <div className="space-y-1 text-sm ">
+                        <div className="flex justify-between">
+                            <div className="flex gap-2">
+                                <span className="text-gray-600">All / Active:</span>
+                                <span className="text-gray-900">5 / <span className="font-semibold">3</span></span>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="text-gray-600">In / Out:</span>
+                                <span className="text-gray-900">0</span>
+                            </div>
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">Guest</span>
-                            <span className="text-base font-bold text-gray-800 leading-none">0</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">Maint</span>
-                            <span className="text-base font-bold text-gray-800 leading-none">0</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">In/Out</span>
-                            <span className="text-base font-bold text-gray-800 leading-none">0</span>
+                        <div className="flex justify-between pt-1">
+                            <div className="flex gap-2">
+                                <span className="text-gray-600">Visitor:</span>
+                                <span className="text-gray-900">0</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="text-gray-600">Maintenance:</span>
+                                <span className="text-gray-900">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Details Row */}
+                {/* Details */}
                 <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Details</div>
-                    <div className="grid grid-cols-4 gap-1">
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">Occ</span>
-                            <span className="text-base font-bold text-gray-800 leading-none">{room.occupancy || '0/3'}</span>
+                    <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                            <div className="flex gap-2">
+                                <span className="text-gray-600">Parking:</span>
+                                <span className={`font-medium`}>
+                                    {room.parking || 'No'}
+                                </span>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="text-gray-600">Occupancy:</span>
+                                <span className="text-gray-900">{room.occupancy || '0 / 3'}</span>
+                            </div>
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">Type</span>
-                            <span className="text-base font-bold text-gray-800 leading-none truncate" title={room.type}>{room.type}</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">Park</span>
-                            <span className="text-base font-bold text-gray-800 leading-none">{room.parking || 'No'}</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-gray-500 font-semibold uppercase truncate">Visit</span>
-                            <span className="text-base font-bold text-gray-800 leading-none">{room.visits}</span>
+                        <div className="flex justify-between py-1">
+                            <div className="flex gap-2 flex-1 min-w-0 pr-2">
+                                <span className="text-gray-600 shrink-0">Type:</span>
+                                <span className="text-gray-900 font-bold truncate" title="Short Term Rental">Short Term</span>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                                <span className="text-gray-600">Visits:</span>
+                                <span className="text-gray-900">{room.visits}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
