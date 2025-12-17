@@ -12,8 +12,16 @@ interface SignInProps {
     onClearError?: () => void;
 }
 
-// reCAPTCHA v2 Site Key
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
+// reCAPTCHA v2 Site Key - decoded from Base64 at runtime
+const decodeKey = (encoded: string): string => {
+    try { return atob(encoded); } catch { return encoded; }
+};
+const RECAPTCHA_SITE_KEY = decodeKey(
+    import.meta.env.VITE_RECAPTCHA_SITE_KEY_ENCODED ||
+    (import.meta.env.PROD
+        ? 'NkxlT1Z5NHNBQUFBQUt2V0pJWXd3OTd5OUgwQ0dyblJmbzZwT2NHZ2Q='
+        : 'NkxmeUx5a3NBQUFBQUdtWWVnX3hlWWdNODBzbU1YNVV4Q25yc0gyNg==')
+);
 
 export const SignIn: React.FC<SignInProps> = ({ onSignIn, onForgotPassword, error, onClearError }) => {
     const [email, setEmail] = useState('');
