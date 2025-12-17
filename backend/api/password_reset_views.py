@@ -40,7 +40,7 @@ def forgot_password(request):
         return Response({'error': 'Email is required'}, status=400)
     
     try:
-        teable_url = settings.TEABLE_API_URL
+        teable_url = settings.TEABLE_USER_TABLE_URL
         teable_token = settings.TEABLE_API_TOKEN
         
         # Check if email exists in Teable
@@ -87,8 +87,8 @@ def forgot_password(request):
         
         # Generate reset link
         # Generate reset link
-        origin = request.META.get('HTTP_ORIGIN', 'https://portal.theopus.biz')
-        reset_link = f'{origin}/reset-password?token={token}'
+        base_url = request.headers.get('Origin', 'http://localhost:5173')
+        reset_link = f'{base_url}/reset-password?token={token}'
         
         # Send via n8n webhook (no credentials stored here!)
         try:
@@ -152,7 +152,7 @@ def reset_password(request):
     email = token_data['email']
     
     try:
-        teable_url = settings.TEABLE_API_URL
+        teable_url = settings.TEABLE_USER_TABLE_URL
         teable_token = settings.TEABLE_API_TOKEN
         
         headers = {
