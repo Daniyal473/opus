@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config';
 import { Header } from './Header';
 import { UserForm } from './UserForm';
 import { UserList, type User } from './UserList';
@@ -36,7 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onRese
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/users/`);
+            const response = await fetch('http://127.0.0.1:8000/api/users/');
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -62,7 +61,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onRese
 
     const handleCreateUser = async (userData: any) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/users/create/`, {
+            const response = await fetch('http://127.0.0.1:8000/api/users/create/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,7 +101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onRese
     const handleUpdateUser = async (id: string, updates: { name: string; email: string; role: string }) => {
         console.log('Updating user:', id, updates);
         try {
-            const response = await fetch(`${API_BASE_URL}/users/${id}/update/`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/users/${id}/update/`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -141,7 +140,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onRese
     const confirmDeleteUser = async () => {
         if (userToDelete) {
             try {
-                const response = await fetch(`${API_BASE_URL}/users/${userToDelete}/delete/`, {
+                const response = await fetch(`http://127.0.0.1:8000/api/users/${userToDelete}/delete/`, {
                     method: 'DELETE',
                 });
 

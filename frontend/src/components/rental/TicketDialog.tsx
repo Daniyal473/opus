@@ -1,5 +1,3 @@
-import { Download, X } from 'lucide-react';
-import { API_BASE_URL } from '../../config';
 import { useState, useEffect } from 'react';
 import type { Ticket } from '../../types/rental';
 
@@ -35,7 +33,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
         // setLinkedRecords([]); // Don't reset on refresh to avoid flickering if merely updating status
         // Only fetch for supported types
         if (ticket.type === 'In/Out' || ticket.type === 'Visit' || ticket.type === 'Maintenance') {
-            fetch(`${API_BASE_URL} /linked-records/ ? ticket_id = ${ticket.id}& type=${ticket.type} `)
+            fetch(`http://localhost:8000/api/linked-records/?ticket_id=${ticket.id}&type=${ticket.type}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.records) {
@@ -101,7 +99,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
     const handleGuestStatus = async (recordId: string, status: 'in' | 'out') => {
         // Optimistic UI update could go here, but for now we'll wait for server
         try {
-            const response = await fetch(`${API_BASE_URL} /update-guest-status/`, {
+            const response = await fetch('http://localhost:8000/api/update-guest-status/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -123,10 +121,10 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                 const text = await response.text();
                 try {
                     const data = JSON.parse(text);
-                    alert(`Error: ${data.error || 'Failed to update status'} `);
+                    alert(`Error: ${data.error || 'Failed to update status'}`);
                 } catch (e) {
                     console.error("Server returned non-JSON error:", text);
-                    alert(`Server Error: Response was not JSON.Check console.`);
+                    alert(`Server Error: Response was not JSON. Check console.`);
                 }
             }
         } catch (error) {
@@ -167,11 +165,11 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                     </div>
 
                     <div className="flex gap-3 items-stretch">
-                        <div className={`flex flex - col justify - center items - center px - 4 py - 2 rounded - lg border ${getStatusColor(ticket.status)} w - 32 flex - shrink - 0`}>
+                        <div className={`flex flex-col justify-center items-center px-4 py-2 rounded-lg border ${getStatusColor(ticket.status)} w-32 flex-shrink-0`}>
                             <span className="text-xs uppercase font-bold tracking-wider opacity-70 mb-1">Status</span>
                             <span className="font-bold text-sm text-center">{ticket.status}</span>
                         </div>
-                        <div className={`flex flex - col justify - center items - center px - 4 py - 2 rounded - lg border ${getPriorityColor(ticket.priority)} w - 32 flex - shrink - 0`}>
+                        <div className={`flex flex-col justify-center items-center px-4 py-2 rounded-lg border ${getPriorityColor(ticket.priority)} w-32 flex-shrink-0`}>
                             <span className="text-xs uppercase font-bold tracking-wider opacity-70 mb-1">Priority</span>
                             <span className="font-bold text-sm text-center">{ticket.priority}</span>
                         </div>
@@ -234,7 +232,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                                                         <button
                                                             onClick={() => handleGuestStatus(record.id, 'in')}
                                                             disabled={!!record.checkInDate}
-                                                            className={`px - 3 py - 1 text - white text - xs font - medium rounded transition - colors h - fit ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} `}
+                                                            className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors h-fit ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                                                         >
                                                             Start
                                                         </button>
@@ -243,7 +241,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                                                         <button
                                                             onClick={() => handleGuestStatus(record.id, 'out')}
                                                             disabled={!!record.checkOutDate}
-                                                            className={`px - 3 py - 1 text - white text - xs font - medium rounded transition - colors h - fit ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'} `}
+                                                            className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors h-fit ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                                                         >
                                                             End
                                                         </button>
@@ -395,7 +393,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                                                                     <button
                                                                         onClick={() => handleGuestStatus(record.id, 'in')}
                                                                         disabled={!!record.checkInDate}
-                                                                        className={`px - 3 py - 1 text - white text - xs font - medium rounded transition - colors w - 16 text - center ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} `}
+                                                                        className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors w-16 text-center ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                                                                     >
                                                                         In
                                                                     </button>
@@ -404,7 +402,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                                                                     <button
                                                                         onClick={() => handleGuestStatus(record.id, 'out')}
                                                                         disabled={!!record.checkOutDate}
-                                                                        className={`px - 3 py - 1 text - white text - xs font - medium rounded transition - colors w - 16 text - center ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'} `}
+                                                                        className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors w-16 text-center ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                                                                     >
                                                                         Out
                                                                     </button>
@@ -446,13 +444,13 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                             <div className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden relative">
                                 {previewAttachment.type === 'application/pdf' ? (
                                     <iframe
-                                        src={`${API_BASE_URL} /proxy-image/ ? url = ${encodeURIComponent(previewAttachment.url)}& type=${encodeURIComponent(previewAttachment.type)} #toolbar = 0 & navpanes=0 & scrollbar=0`}
+                                        src={`http://localhost:8000/api/proxy-image/?url=${encodeURIComponent(previewAttachment.url)}&type=${encodeURIComponent(previewAttachment.type)}#toolbar=0&navpanes=0&scrollbar=0`}
                                         className="w-full h-full"
                                         title={previewAttachment.name}
                                     />
                                 ) : (
                                     <img
-                                        src={`${API_BASE_URL} /proxy-image/ ? url = ${encodeURIComponent(previewAttachment.url)}& type=${encodeURIComponent(previewAttachment.type)} `}
+                                        src={`http://localhost:8000/api/proxy-image/?url=${encodeURIComponent(previewAttachment.url)}&type=${encodeURIComponent(previewAttachment.type)}`}
                                         alt={previewAttachment.name}
                                         className="max-w-full max-h-full object-contain"
                                     />

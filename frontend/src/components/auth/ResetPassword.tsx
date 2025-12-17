@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { API_BASE_URL } from '../../config';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface ResetPasswordProps {
     token: string;
@@ -56,7 +55,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL} /reset-password-email/`, {
+            const response = await fetch('http://127.0.0.1:8000/api/reset-password-email/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, new_password: newPassword }),
@@ -121,16 +120,16 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
                                 <div className="mt-2 flex items-center gap-2">
                                     <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                                         <div
-                                            className={`h - full transition - all duration - 300 ${passwordStrength === 'weak' ? 'w-1/3 bg-red-500' :
-                                                    passwordStrength === 'medium' ? 'w-2/3 bg-yellow-500' :
-                                                        'w-full bg-green-500'
-                                                } `}
+                                            className={`h-full transition-all duration-300 ${passwordStrength === 'weak' ? 'w-1/3 bg-red-500' :
+                                                passwordStrength === 'medium' ? 'w-2/3 bg-yellow-500' :
+                                                    'w-full bg-green-500'
+                                                }`}
                                         />
                                     </div>
-                                    <span className={`text - sm font - medium ${passwordStrength === 'weak' ? 'text-red-600' :
-                                            passwordStrength === 'medium' ? 'text-yellow-600' :
-                                                'text-green-600'
-                                        } `}>
+                                    <span className={`text-sm font-medium ${passwordStrength === 'weak' ? 'text-red-600' :
+                                        passwordStrength === 'medium' ? 'text-yellow-600' :
+                                            'text-green-600'
+                                        }`}>
                                         {passwordStrength === 'weak' ? 'Weak' :
                                             passwordStrength === 'medium' ? 'Medium' :
                                                 'Strong'}
