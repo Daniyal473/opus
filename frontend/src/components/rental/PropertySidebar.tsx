@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { RoomCardData, PropertyInfo, Ticket } from '../../types/rental';
+import type { RoomCardData, Ticket } from '../../types/rental';
 import { TicketDialog } from './TicketDialog';
 import { AddTicketDialog } from './AddTicketDialog';
 
 interface PropertySidebarProps {
     selectedRoom: RoomCardData | null;
-    defaultInfo: PropertyInfo;
 }
 
 
@@ -24,7 +23,7 @@ function formatDateTime(isoString: string): string {
     });
 }
 
-export function PropertySidebar({ selectedRoom, defaultInfo }: PropertySidebarProps) {
+export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const [isAddTicketOpen, setIsAddTicketOpen] = useState(false);

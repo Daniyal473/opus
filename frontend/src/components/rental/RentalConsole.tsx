@@ -3,7 +3,7 @@ import { fetchApartmentData, transformRecordToRoomCard, extractFloors, type Teab
 import { FloorSelector } from './FloorSelector';
 import { RoomGrid } from './RoomGrid';
 import { PropertySidebar } from './PropertySidebar';
-import { defaultPropertyInfo } from '../../data/mockRoomData';
+
 import { Settings } from 'lucide-react';
 import opusLogo from '../../assets/opus-logo.jpg';
 import type { RoomCardData } from '../../types/rental';
@@ -121,7 +121,6 @@ export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalC
             {/* Right Sidebar */}
             <PropertySidebar
                 selectedRoom={selectedRoom}
-                defaultInfo={defaultPropertyInfo}
             />
         </div>
     );

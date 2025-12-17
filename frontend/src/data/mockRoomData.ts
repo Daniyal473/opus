@@ -1,4 +1,4 @@
-import type { RoomData, PropertyInfo, Building, Floor } from '../types/rental';
+import type { RoomData } from '../types/rental';
 
 export const roomData: RoomData[] = [
     {
@@ -11,7 +11,10 @@ export const roomData: RoomData[] = [
         owner: 'Alpha Investors',
         manager: 'Namuve',
         lease: 'Short-term',
-        occupancy: '0 / 2'
+        occupancy: '0 / 2',
+        parking: 'N/A',
+        visits: 0,
+        apartmentId: 101
     },
     {
         type: '(1B)',
@@ -23,7 +26,10 @@ export const roomData: RoomData[] = [
         owner: 'Beta Properties',
         manager: 'Globex',
         lease: 'Short-term',
-        occupancy: '2 / 3'
+        occupancy: '2 / 3',
+        parking: 'P-101',
+        visits: 5,
+        apartmentId: 102
     },
     {
         type: '(2B)',
@@ -35,7 +41,10 @@ export const roomData: RoomData[] = [
         owner: 'Alpha Investors',
         manager: 'Namuve',
         lease: 'Long-term',
-        occupancy: '4 / 5'
+        occupancy: '4 / 5',
+        parking: 'P-202',
+        visits: 2,
+        apartmentId: 103
     },
     {
         type: '(3B)',
@@ -47,7 +56,10 @@ export const roomData: RoomData[] = [
         owner: 'Beta Properties',
         manager: 'Globex',
         lease: 'Short-term',
-        occupancy: '5 / 6'
+        occupancy: '5 / 6',
+        parking: 'P-303',
+        visits: 12,
+        apartmentId: 104
     },
     {
         type: '(S)',
@@ -59,7 +71,10 @@ export const roomData: RoomData[] = [
         owner: 'Gamma Holdings',
         manager: 'Namuve',
         lease: 'Short-term',
-        occupancy: '0 / 2'
+        occupancy: '0 / 2',
+        parking: 'N/A',
+        visits: 0,
+        apartmentId: 105
     },
     {
         type: '(1B)',
@@ -71,34 +86,11 @@ export const roomData: RoomData[] = [
         owner: 'Alpha Investors',
         manager: 'Globex',
         lease: 'Long-term',
-        occupancy: '0 / 3'
+        occupancy: '0 / 3',
+        parking: 'N/A',
+        visits: 0,
+        apartmentId: 106
     }
 ];
 
-export const defaultPropertyInfo: PropertyInfo = {
-    header: 'Property Information',
-    ownedBy: 'Alpha Investors',
-    managedBy: 'Namuve',
-    leaseType: 'Short-term',
-    occupancy: '4 / 6'
-};
 
-export const buildings: Building[] = [
-    { id: 'all', name: 'All' },
-    { id: 'opus', name: 'The Opus' }
-];
-
-export const floors: Floor[] = [
-    { code: 'all', name: 'All' },
-    { code: 'GF', name: 'Ground Floor' },
-    { code: '1F', name: '1st Floor' },
-    { code: '2F', name: '2nd Floor' },
-    { code: '3F', name: '3rd Floor' },
-    { code: '4F', name: '4th Floor' },
-    { code: '5F', name: '5th Floor' },
-    { code: '6F', name: '6th Floor' },
-    { code: '7F', name: '7th Floor' },
-    { code: '8F', name: '8th Floor' },
-    { code: '9F', name: '9th Floor' },
-    { code: '10F', name: '10th Floor' }
-];
