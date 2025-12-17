@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { API_BASE_URL } from '../../services/api';
 
 interface ResetPasswordProps {
     token: string;
@@ -55,7 +56,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/reset-password-email/', {
+            const response = await fetch(`${API_BASE_URL}/reset-password-email/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, new_password: newPassword }),

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Ticket } from '../../types/rental';
+import { API_BASE_URL } from '../../services/api';
 
 interface TicketDialogProps {
     ticket: Ticket | null;
@@ -33,7 +34,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
         // setLinkedRecords([]); // Don't reset on refresh to avoid flickering if merely updating status
         // Only fetch for supported types
         if (ticket.type === 'In/Out' || ticket.type === 'Visit' || ticket.type === 'Maintenance') {
-            fetch(`http://localhost:8000/api/linked-records/?ticket_id=${ticket.id}&type=${ticket.type}`)
+            fetch(`${API_BASE_URL}/linked-records/?ticket_id=${ticket.id}&type=${ticket.type}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.records) {
@@ -99,7 +100,7 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
     const handleGuestStatus = async (recordId: string, status: 'in' | 'out') => {
         // Optimistic UI update could go here, but for now we'll wait for server
         try {
-            const response = await fetch('http://localhost:8000/api/update-guest-status/', {
+            const response = await fetch(`${API_BASE_URL}/update-guest-status/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -444,13 +445,13 @@ export function TicketDialog({ ticket, isOpen, onClose }: TicketDialogProps) {
                             <div className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden relative">
                                 {previewAttachment.type === 'application/pdf' ? (
                                     <iframe
-                                        src={`http://localhost:8000/api/proxy-image/?url=${encodeURIComponent(previewAttachment.url)}&type=${encodeURIComponent(previewAttachment.type)}#toolbar=0&navpanes=0&scrollbar=0`}
+                                        src={`${API_BASE_URL}/proxy-image/?url=${encodeURIComponent(previewAttachment.url)}&type=${encodeURIComponent(previewAttachment.type)}#toolbar=0&navpanes=0&scrollbar=0`}
                                         className="w-full h-full"
                                         title={previewAttachment.name}
                                     />
                                 ) : (
                                     <img
-                                        src={`http://localhost:8000/api/proxy-image/?url=${encodeURIComponent(previewAttachment.url)}&type=${encodeURIComponent(previewAttachment.type)}`}
+                                        src={`${API_BASE_URL}/proxy-image/?url=${encodeURIComponent(previewAttachment.url)}&type=${encodeURIComponent(previewAttachment.type)}`}
                                         alt={previewAttachment.name}
                                         className="max-w-full max-h-full object-contain"
                                     />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { RoomCardData, Ticket } from '../../types/rental';
+import { API_BASE_URL } from '../../services/api';
 import { TicketDialog } from './TicketDialog';
 import { AddTicketDialog } from './AddTicketDialog';
 
@@ -52,7 +53,7 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
                 // Adjust URL based on your dev environment setup. Assuming proxy or direct access.
                 // If cors usage is an issue, we might need a clearer path or proxy.
                 // Given the existing context, I'll try the direct localhost path.
-                const response = await fetch('http://localhost:8000/api/ticket-options/');
+                const response = await fetch(`${API_BASE_URL}/ticket-options/`);
                 if (response.ok) {
                     const data = await response.json();
                     setTicketOptions(data.options || []);
@@ -66,7 +67,7 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
 
         const fetchMaintenanceOptions = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/maintenance-options/');
+                const response = await fetch(`${API_BASE_URL}/maintenance-options/`);
                 if (response.ok) {
                     const data = await response.json();
                     setMaintenanceOptions(data.options || []);
@@ -80,7 +81,7 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
 
         const fetchAgentOptions = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/agents/');
+                const response = await fetch(`${API_BASE_URL}/agents/`);
                 if (response.ok) {
                     const data = await response.json();
                     setAgentOptions(data.agents || []);
@@ -104,7 +105,7 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
         }
         try {
             // Fetch tickets filtered by the selected room's internal Apartment ID
-            const response = await fetch(`http://localhost:8000/api/tickets/?apartment_id=${selectedRoom.apartmentId}`);
+            const response = await fetch(`${API_BASE_URL}/tickets/?apartment_id=${selectedRoom.apartmentId}`);
             if (response.ok) {
                 const data = await response.json();
                 setTickets(data.tickets || []);
@@ -199,7 +200,7 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
                     });
                 }
 
-                const response = await fetch('http://localhost:8000/api/tickets/create/', {
+                const response = await fetch(`${API_BASE_URL}/tickets/create/`, {
                     method: 'POST',
                     // Header for Content-Type is set automatically by browser with boundary for FormData
                     body: formData,
