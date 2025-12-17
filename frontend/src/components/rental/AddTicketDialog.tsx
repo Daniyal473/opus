@@ -31,18 +31,21 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
         attachments: File[];
     }[]>([{ name: '', cnic: '', cnicExpiry: '', attachments: [] }]);
 
-    // Update type when initialType changes
+    // Reset form when dialog opens
     useEffect(() => {
         if (isOpen) {
-            // For 'Visit', if options are available and current choice is not one of them,
-            // we could default to the first option. But simpler is just reset to initialType first.
-            // If the user selects something else, this useEffect won't re-run unless initialType changes again.
-            // Wait, if initialType is 'Visit' (Cleaning alias), and user picks 'Guest' (from dynamic options),
-            // 'Guest' != 'Visit'.
-            // If we just setType(initialType), it sets to 'Visit'.
-            // User changes to 'Guest'. 'initialType' is still 'Visit'. 'isOpen' is still true.
-            // This useEffect only runs on [isOpen, initialType] change. So it won't reset on internal 'type' change. Correct.
             setType(initialType);
+            // Reset fields to ensure no data leakage between ticket types
+            setGuests([{ name: '', cnic: '', cnicExpiry: '', attachments: [] }]);
+            setTitle('');
+            setVisitType('');
+            setMaintenanceType('');
+            setPriority('Low');
+            setDescription('');
+            setOccupancy('');
+            setAgent('');
+            setArrival('');
+            setDeparture('');
         }
     }, [isOpen, initialType]);
 
