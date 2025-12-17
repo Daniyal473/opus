@@ -86,7 +86,9 @@ def forgot_password(request):
         }
         
         # Generate reset link
-        reset_link = f'http://localhost:5173/reset-password?token={token}'
+        # Generate reset link
+        origin = request.META.get('HTTP_ORIGIN', 'https://portal.theopus.biz')
+        reset_link = f'{origin}/reset-password?token={token}'
         
         # Send via n8n webhook (no credentials stored here!)
         try:
