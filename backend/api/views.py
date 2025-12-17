@@ -677,6 +677,7 @@ def get_linked_records(request):
                              'id': record.get('id'),
                              'name': fields.get('Name'), # 'Name' field in Maintenance
                              'cnic': fields.get('CNIC'),
+                             'cnicExpiry': fields.get('CNIC Expire'),
                              # Map 'Start Time ' to checkInDate
                              'checkInDate': fields.get('Start Time '),
                              # Map 'End Date ' to checkOutDate
