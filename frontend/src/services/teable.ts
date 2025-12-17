@@ -1,7 +1,9 @@
 import axios from 'axios';
 import type { RoomCardData, RoomStatus } from '../types/rental';
 
-const TEABLE_API_URL = 'http://127.0.0.1:8000/api/apartments/';
+import { API_BASE_URL } from '../config';
+
+const TEABLE_API_URL = `${API_BASE_URL}/apartments/`;
 
 // Field Names (API returns names by default)
 const FIELDS = {
