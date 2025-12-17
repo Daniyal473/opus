@@ -16,7 +16,7 @@ interface SignInProps {
 const decodeKey = (encoded: string): string => {
     try { return atob(encoded); } catch { return encoded; }
 };
-const RECAPTCHA_SITE_KEY = decodeKey(
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || decodeKey(
     import.meta.env.VITE_RECAPTCHA_SITE_KEY_ENCODED || 'NkxmeUx5a3NBQUFBQUdtWWVnX3hlWWdNODBzbU1YNVV4Q25yc0gyNg=='
 );
 
