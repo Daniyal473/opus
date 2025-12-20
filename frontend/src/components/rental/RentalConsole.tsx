@@ -1,49 +1,77 @@
 import { useState, useMemo, useEffect } from 'react';
-import { fetchApartmentData, transformRecordToRoomCard, extractFloors, type TeableRecord } from '../../services/teable';
+import { fetchApartmentData, fetchTickets, transformRecordToRoomCard, extractFloors, type TeableRecord } from '../../services/teable';
 import { FloorSelector } from './FloorSelector';
 import { RoomGrid } from './RoomGrid';
 import { PropertySidebar } from './PropertySidebar';
 
 import { Settings } from 'lucide-react';
 import opusLogo from '../../assets/opus-logo.jpg';
-import type { RoomCardData } from '../../types/rental';
+import type { RoomCardData, Ticket } from '../../types/rental';
 import './rental.css';
 
 interface RentalConsoleProps {
     onLogout?: () => void;
     onAdminPanelClick?: () => void;
+    onTicketRequestClick?: () => void;
+    onGuestManagementClick?: () => void;
     userRole?: string;
+    username?: string;
 }
 
-export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalConsoleProps) {
+export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClick, onGuestManagementClick, userRole, username }: RentalConsoleProps) {
     const [selectedFloor, setSelectedFloor] = useState('all');
     const [selectedRoom, setSelectedRoom] = useState<RoomCardData | null>(null);
     const [allRecords, setAllRecords] = useState<TeableRecord[]>([]);
+    const [allTickets, setAllTickets] = useState<Ticket[]>([]);
+    // Check if user has admin access (handle case and whitespace)
+    console.log("RentalConsole received userRole:", userRole);
+    const normalizedRole = userRole?.trim().toLowerCase();
 
-    // Derive floors from API data
+    // Permission to see the Admin Panel button (Super Admin only)
+    const showAdminPanel = normalizedRole === 'super-admin' || normalizedRole === 'super admin';
+
+    // Permission to see all rooms (Super Admin + Admin)
+    const canSeeAllRooms = showAdminPanel || normalizedRole === 'admin';
+
+    // 1. Filter by User Access first (Centralized Logic)
+    const filteredRecordsByUser = useMemo(() => {
+        let records = allRecords;
+        if (!canSeeAllRooms && username) {
+            records = records.filter(r => {
+                const managedBy = r.fields['Managed by'];
+                // Check if managedBy matches username
+                return String(managedBy).trim() === String(username).trim();
+            });
+        }
+        return records;
+    }, [allRecords, canSeeAllRooms, username]);
+
+    // Derive floors from Filtered API data
     const apiFloors = useMemo(() => {
-        if (allRecords.length === 0) return [{ code: 'all', name: 'All' }];
+        if (filteredRecordsByUser.length === 0) return [{ code: 'all', name: 'All' }];
 
-        const extracted = extractFloors(allRecords);
+        const extracted = extractFloors(filteredRecordsByUser);
         const dynamicFloors = extracted.map(f => ({ code: f, name: f })); // Map to Floor interface
 
         return [{ code: 'all', name: 'All' }, ...dynamicFloors];
-    }, [allRecords]);
+    }, [filteredRecordsByUser]);
 
     // Fetch floors and rooms from API
     useEffect(() => {
         const loadData = async () => {
-            const records = await fetchApartmentData();
-            console.log('Raw Records from API:', records); // Debug log
+            const [records, tickets] = await Promise.all([
+                fetchApartmentData(),
+                fetchTickets()
+            ]);
+            console.log('Raw Records from API:', records);
+            console.log('Tickets from API:', tickets);
             setAllRecords(records);
+            setAllTickets(tickets);
         };
         loadData();
     }, []);
 
-    // Check if user has admin access (handle case and whitespace)
-    console.log("RentalConsole received userRole:", userRole);
-    const normalizedRole = userRole?.trim().toLowerCase();
-    const showAdminPanel = normalizedRole === 'super-admin' || normalizedRole === 'super admin' || normalizedRole === 'admin';
+
 
     // ... (rest of code)
     // In JSX:
@@ -58,17 +86,33 @@ export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalC
 
     // Generate room cards based on selected floor
     const roomCards = useMemo<RoomCardData[]>(() => {
-        const sourceData = allRecords;
+        let sourceData = filteredRecordsByUser;
 
         // Filter records by floor
         const filteredRecords = selectedFloor === 'all'
             ? sourceData
             : sourceData.filter(r => String(r.fields['Floor']).trim() === selectedFloor);
 
-        return filteredRecords.map(transformRecordToRoomCard);
+        return filteredRecords.map(r => {
+            const room = transformRecordToRoomCard(r);
 
-    }, [selectedFloor, allRecords]);
+            // Aggregate tickets for this room
+            // Note: apartmentId in room is number, in ticket is number (if converted)
+            // But checking rental.ts, RoomCardData.apartmentId is number. Ticket.apartmentId is number.
 
+            const roomTickets = allTickets.filter(t => Number(t.apartmentId) === Number(room.apartmentId));
+
+            room.ticketCounts = {
+                total: roomTickets.length,
+                active: roomTickets.filter(t => t.status !== 'Closed').length,
+                inOut: roomTickets.filter(t => t.type === 'In / Out' || t.type === 'Check-in / Check-out' || t.type === 'In/Out').length,
+                visitor: roomTickets.filter(t => t.type === 'Visitor' || t.type === 'Visit' || t.type === 'Guest' || t.type === 'Cleaning').length,
+                maintenance: roomTickets.filter(t => t.type === 'Maintenance' || t.type === 'Work Permit').length
+            };
+            return room;
+        });
+
+    }, [selectedFloor, filteredRecordsByUser, allTickets]);
 
 
     const handleFloorChange = (floorCode: string) => {
@@ -89,6 +133,17 @@ export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalC
                         <img src={opusLogo} alt="Opus Portal" className="h-25 max-w-full object-contain" />
                     </div>
 
+                    {/* Guest Management Button */}
+                    {!canSeeAllRooms && onGuestManagementClick && (
+                        <div
+                            className="px-4 py-2 text-xs font-medium cursor-pointer hover:bg-teal-50 flex items-center gap-2 bg-teal-50 text-teal-600 border-b border-gray-300"
+                            onClick={onGuestManagementClick}
+                        >
+
+                            <span className="font-medium">Ticket Management</span>
+                        </div>
+                    )}
+
                     {/* Admin Panel Button */}
                     {showAdminPanel && onAdminPanelClick && (
                         <div
@@ -97,6 +152,17 @@ export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalC
                         >
                             <Settings size={16} />
                             <span className="font-medium">Admin Panel</span>
+                        </div>
+                    )}
+
+                    {/* Ticket Request Button */}
+                    {canSeeAllRooms && onTicketRequestClick && (
+                        <div
+                            className="px-4 py-2 text-xs font-medium cursor-pointer hover:bg-teal-50 flex items-center gap-2 bg-teal-50 text-teal-600 border-b border-gray-300"
+                            onClick={onTicketRequestClick}
+                        >
+
+                            <span className="font-medium">Ticket Request</span>
                         </div>
                     )}
 
@@ -119,9 +185,12 @@ export function RentalConsole({ onLogout, onAdminPanelClick, userRole }: RentalC
             </main>
 
             {/* Right Sidebar */}
-            <PropertySidebar
-                selectedRoom={selectedRoom}
-            />
+            {(canSeeAllRooms || selectedRoom) && (
+                <PropertySidebar
+                    selectedRoom={selectedRoom}
+                    role={userRole}
+                />
+            )}
         </div>
     );
 }

@@ -10,9 +10,11 @@ interface AddTicketDialogProps {
     ticketOptions?: string[];
     maintenanceOptions?: string[];
     agentOptions?: string[];
+    roomNumber?: string;
+    role?: string;
 }
 
-export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out', roomId, ticketOptions = [], maintenanceOptions = [], agentOptions = [] }: AddTicketDialogProps) {
+export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out', roomId, roomNumber, ticketOptions = [], maintenanceOptions = [], agentOptions = [], role }: AddTicketDialogProps) {
     const [title, setTitle] = useState('');
     const [type, setType] = useState<Ticket['type']>(initialType);
     const [visitType, setVisitType] = useState(''); // Separate state for Visit subtype
@@ -59,6 +61,27 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
             finalType = visitType || (ticketOptions.length > 0 ? ticketOptions[0] : 'Guest');
         } else if (initialType === 'Maintenance') {
             finalType = maintenanceType || (maintenanceOptions.length > 0 ? maintenanceOptions[0] : 'Work Permit');
+        }
+
+        // Validate Attachments and CNIC Expiry
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < guests.length; i++) {
+            if (guests[i].attachments.length === 0) {
+                alert(`Please upload at least one attachment for ${guests[i].name || 'Guest ' + (i + 1)}`);
+                return;
+            }
+
+            if (guests[i].cnicExpiry) {
+                const expiryDate = new Date(guests[i].cnicExpiry);
+                expiryDate.setHours(0, 0, 0, 0);
+
+                if (expiryDate <= today) {
+                    alert(`CNIC Expiry for ${guests[i].name || 'Guest ' + (i + 1)} must be a future date.`);
+                    return;
+                }
+            }
         }
 
         onAdd({
@@ -135,12 +158,13 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
     };
 
     const displayType = type;
-    const dialogTitle = roomId
-        ? `Create New ${displayType} Ticket for room ${roomId}`
+    const roomLabel = roomNumber || roomId;
+    const dialogTitle = roomLabel
+        ? `Create New ${displayType} Ticket for room ${roomLabel}`
         : 'Create New Ticket';
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
             <div
                 className="bg-white rounded-lg shadow-xl w-full max-w-4xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200"
                 onClick={(e) => e.stopPropagation()}
@@ -181,6 +205,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                 <input
                                     id="occupancy"
                                     type="text"
+                                    required
                                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                     value={occupancy}
                                     onChange={(e) => setOccupancy(e.target.value)}
@@ -188,12 +213,13 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                 />
                             </div>
 
-                            {/* Agent Dropdown (Maintenance Only) */}
-                            {initialType === 'Maintenance' && (
+                            {/* Agent Dropdown (Maintenance Only) - Hidden for standard users */}
+                            {initialType === 'Maintenance' && role?.toLowerCase() !== 'user' && (
                                 <div className="flex-1">
                                     <label htmlFor="agent" className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
                                     <select
                                         id="agent"
+                                        required
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                         value={agent}
                                         onChange={(e) => setAgent(e.target.value)}
@@ -213,6 +239,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                 <textarea
                                     id="description"
                                     rows={1}
+                                    required
                                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
@@ -292,6 +319,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                     <input
                                         id="arrival"
                                         type="datetime-local"
+                                        required
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                         value={arrival}
                                         onChange={(e) => setArrival(e.target.value)}
@@ -308,6 +336,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                     <input
                                         id="departure"
                                         type="datetime-local"
+                                        required
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                         value={departure}
                                         onChange={(e) => setDeparture(e.target.value)}
@@ -324,6 +353,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                                         <input
                                             type="text"
+                                            required
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                             value={guest.name}
                                             onChange={(e) => handleGuestChange(index, 'name', e.target.value)}
@@ -331,9 +361,10 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">CNIC</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">CNIC / Passport</label>
                                         <input
                                             type="text"
+                                            required
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                             value={guest.cnic}
                                             onChange={(e) => handleGuestChange(index, 'cnic', e.target.value)}
@@ -341,9 +372,10 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">CNIC Expire</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">CNIC / Passport Expire</label>
                                         <input
                                             type="date"
+                                            required
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                                             value={guest.cnicExpiry}
                                             onChange={(e) => handleGuestChange(index, 'cnicExpiry', e.target.value)}

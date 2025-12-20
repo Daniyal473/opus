@@ -29,21 +29,21 @@ export function RoomCard({ room, isActive, onClick }: RoomCardProps) {
                         <div className="flex justify-between">
                             <div className="flex gap-2">
                                 <span className="text-gray-600">All / Active:</span>
-                                <span className="text-gray-900">5 / <span className="font-semibold">3</span></span>
+                                <span className="text-gray-900">{room.ticketCounts?.total || 0} / <span className="font-semibold">{room.ticketCounts?.active || 0}</span></span>
                             </div>
                             <div className="flex gap-2">
                                 <span className="text-gray-600">In / Out:</span>
-                                <span className="text-gray-900">0</span>
+                                <span className="text-gray-900">{room.ticketCounts?.inOut || 0}</span>
                             </div>
                         </div>
                         <div className="flex justify-between pt-1">
                             <div className="flex gap-2">
                                 <span className="text-gray-600">Visitor:</span>
-                                <span className="text-gray-900">0</span>
+                                <span className="text-gray-900">{room.ticketCounts?.visitor || 0}</span>
                             </div>
                             <div className="flex gap-2">
                                 <span className="text-gray-600">Maintenance:</span>
-                                <span className="text-gray-900">0</span>
+                                <span className="text-gray-900">{room.ticketCounts?.maintenance || 0}</span>
                             </div>
                         </div>
                     </div>

@@ -3,9 +3,11 @@ import type { RoomCardData, Ticket } from '../../types/rental';
 import { API_BASE_URL } from '../../services/api';
 import { TicketDialog } from './TicketDialog';
 import { AddTicketDialog } from './AddTicketDialog';
+import { TicketConfirmationModal } from './TicketConfirmationModal';
 
 interface PropertySidebarProps {
     selectedRoom: RoomCardData | null;
+    role?: string;
 }
 
 
@@ -24,7 +26,7 @@ function formatDateTime(isoString: string): string {
     });
 }
 
-export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
+export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const [isAddTicketOpen, setIsAddTicketOpen] = useState(false);
@@ -34,6 +36,11 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
     const [maintenanceOptions, setMaintenanceOptions] = useState<string[]>([]);
     const [agentOptions, setAgentOptions] = useState<string[]>([]);
     const [filterType, setFilterType] = useState<string>('all');
+
+    // Confirmation State
+    const [pendingTicketData, setPendingTicketData] = useState<any>(null);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -140,103 +147,117 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
         : null;
 
     const handleAddTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 'status'>) => {
-        // Optimistic update removed in favor of real data fetch
-        if (selectedRoom) {
-            try {
-                // Use the correct internal apartment ID from the API mapping
-                console.log('Selected Room Data:', selectedRoom);
-                const apartmentId = selectedRoom.apartmentId;
-                console.log('Extracted Apartment ID:', apartmentId);
+        setPendingTicketData(newTicket);
+        setIsConfirmOpen(true);
+    };
 
-                // Use FormData to allow file uploads
-                const formData = new FormData();
-                formData.append('apartment_id', String(apartmentId));
+    const confirmCreateTicket = async () => {
+        if (!selectedRoom || !pendingTicketData || isCreating) return;
 
-                // Always send the original type value
-                formData.append('type', newTicket.type);
+        setIsCreating(true);
+        try {
+            const newTicket = pendingTicketData;
+            // Use the correct internal apartment ID from the API mapping
+            console.log('Selected Room Data:', selectedRoom);
+            const apartmentId = selectedRoom.apartmentId;
+            console.log('Extracted Apartment ID:', apartmentId);
 
-                // If type is one of the Visit subtypes (Guest, Foodpanda, etc.), send it as visit_subtype
-                const visitSubtypes = ticketOptions; // Dynamic list from API
-                if (visitSubtypes.includes(newTicket.type)) {
-                    formData.append('visit_subtype', newTicket.type);
-                    console.log('Sending visit_subtype:', newTicket.type);
-                }
+            // Use FormData to allow file uploads
+            const formData = new FormData();
+            formData.append('apartment_id', String(apartmentId));
 
-                // If type is one of the Maintenance subtypes (AC Repair, etc.) or 'Maintenance'
-                const maintenanceSubtypes = maintenanceOptions;
-                if (maintenanceSubtypes.includes(newTicket.type) || newTicket.type === 'Maintenance' || newTicket.type === 'Work Permit') {
-                    formData.append('maintenance_subtype', newTicket.type);
-                    console.log('Sending maintenance_subtype:', newTicket.type);
-                }
+            // Always send the original type value
+            formData.append('type', newTicket.type);
 
-                formData.append('title', newTicket.title);
-                formData.append('purpose', newTicket.description); // Mapping description to purpose
-                formData.append('priority', newTicket.priority);
-                if (newTicket.arrival) formData.append('arrival', newTicket.arrival);
-                if (newTicket.departure) formData.append('departure', newTicket.departure);
-                if (newTicket.occupancy) formData.append('occupancy', newTicket.occupancy);
-                if (newTicket.agent) {
-                    formData.append('agent', newTicket.agent);
-                    console.log('Sending Agent:', newTicket.agent);
-                }
-
-                // Handle Guests and Attachments for In/Out tickets
-                if (newTicket.guests && newTicket.guests.length > 0) {
-                    // Serialize generic guest data
-                    const guestsMeta = newTicket.guests.map(g => ({
-                        name: g.name,
-                        cnic: g.cnic,
-                        cnicExpiry: g.cnicExpiry
-                    }));
-                    formData.append('guests_data', JSON.stringify(guestsMeta));
-
-                    // Append files
-                    newTicket.guests.forEach((guest, index) => {
-                        if (guest.attachments) {
-                            guest.attachments.forEach((file, fileIndex) => {
-                                formData.append(`guest_${index}_attachment_${fileIndex}`, file);
-                            });
-                        }
-                    });
-                }
-
-                const response = await fetch(`${API_BASE_URL}/tickets/create/`, {
-                    method: 'POST',
-                    // Header for Content-Type is set automatically by browser with boundary for FormData
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to create ticket in backend');
-                }
-
-                const data = await response.json();
-                console.log('Ticket created successfully', data);
-                // Refresh ticket list
-                fetchTickets();
-
-            } catch (error) {
-                console.error('Error creating ticket:', error);
-                alert('Failed to save ticket to database, but added locally.');
+            // If type is one of the Visit subtypes (Guest, Foodpanda, etc.), send it as visit_subtype
+            const visitSubtypes = ticketOptions; // Dynamic list from API
+            if (visitSubtypes.includes(newTicket.type)) {
+                formData.append('visit_subtype', newTicket.type);
+                console.log('Sending visit_subtype:', newTicket.type);
             }
+
+            // If type is one of the Maintenance subtypes (AC Repair, etc.) or 'Maintenance'
+            const maintenanceSubtypes = maintenanceOptions;
+            if (maintenanceSubtypes.includes(newTicket.type) || newTicket.type === 'Maintenance' || newTicket.type === 'Work Permit') {
+                formData.append('maintenance_subtype', newTicket.type);
+                console.log('Sending maintenance_subtype:', newTicket.type);
+            }
+
+            formData.append('title', newTicket.title);
+            formData.append('purpose', newTicket.description); // Mapping description to purpose
+            formData.append('priority', newTicket.priority);
+            if (newTicket.arrival) formData.append('arrival', newTicket.arrival);
+            if (newTicket.departure) formData.append('departure', newTicket.departure);
+            if (newTicket.occupancy) formData.append('occupancy', newTicket.occupancy);
+            if (newTicket.agent) {
+                formData.append('agent', newTicket.agent);
+                console.log('Sending Agent:', newTicket.agent);
+            }
+
+            // Handle Guests and Attachments for In/Out tickets
+            if (newTicket.guests && newTicket.guests.length > 0) {
+                // Serialize generic guest data
+                const guestsMeta = newTicket.guests.map((g: any) => ({
+                    name: g.name,
+                    cnic: g.cnic,
+                    cnicExpiry: g.cnicExpiry
+                }));
+                formData.append('guests_data', JSON.stringify(guestsMeta));
+
+                // Append files
+                newTicket.guests.forEach((guest: any, index: number) => {
+                    if (guest.attachments) {
+                        guest.attachments.forEach((file: File, fileIndex: number) => {
+                            formData.append(`guest_${index}_attachment_${fileIndex}`, file);
+                        });
+                    }
+                });
+            }
+
+            const response = await fetch(`${API_BASE_URL}/tickets/create/`, {
+                method: 'POST',
+                // Header for Content-Type is set automatically by browser with boundary for FormData
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create ticket in backend');
+            }
+
+            const data = await response.json();
+            console.log('Ticket created successfully', data);
+
+            // Clean up
+            setPendingTicketData(null);
+            setIsConfirmOpen(false);
+
+            // Refresh ticket list
+            fetchTickets();
+
+        } catch (error) {
+            console.error('Error creating ticket:', error);
+            alert('Failed to save ticket to database.');
+        } finally {
+            setIsCreating(false);
         }
     };
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'High': return 'text-red-600 bg-red-50';
-            case 'Medium': return 'text-orange-600 bg-orange-50';
-            case 'Low': return 'text-green-600 bg-green-50';
-            default: return 'text-gray-600 bg-gray-50';
+            case 'High': return 'text-red-700 bg-red-100 border-red-200';
+            case 'Medium': return 'text-orange-700 bg-orange-100 border-orange-200';
+            case 'Low': return 'text-green-700 bg-green-100 border-green-200';
+            default: return 'text-gray-700 bg-gray-100 border-gray-200';
         }
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Open': return 'text-blue-600 bg-blue-50';
-            case 'In Progress': return 'text-yellow-600 bg-yellow-50';
-            case 'Closed': return 'text-gray-600 bg-gray-50';
-            default: return 'text-gray-600 bg-gray-50';
+            case 'Open': return 'text-blue-700 bg-blue-100 border-blue-200';
+            case 'Under Review': return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+            case 'Approved': return 'text-teal-700 bg-teal-100 border-teal-200';
+            case 'Closed': return 'text-gray-700 bg-gray-100 border-gray-200';
+            default: return 'text-gray-700 bg-gray-100 border-gray-200';
         }
     };
 
@@ -335,12 +356,14 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
                                         >
                                             In/Out
                                         </button>
-                                        <button
-                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                            onClick={() => handleTicketTypeSelect('Visit')}
-                                        >
-                                            Visit
-                                        </button>
+                                        {role?.toLowerCase() !== 'user' && (
+                                            <button
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                onClick={() => handleTicketTypeSelect('Visit')}
+                                            >
+                                                Visit
+                                            </button>
+                                        )}
                                         <button
                                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                             onClick={() => handleTicketTypeSelect('Maintenance')}
@@ -388,6 +411,11 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
                 ticket={selectedTicket}
                 isOpen={!!selectedTicket}
                 onClose={() => setSelectedTicket(null)}
+                onUpdate={fetchTickets}
+                ticketOptions={ticketOptions}
+                maintenanceOptions={maintenanceOptions}
+                agentOptions={agentOptions}
+                role={role}
             />
 
             <AddTicketDialog
@@ -396,9 +424,20 @@ export function PropertySidebar({ selectedRoom }: PropertySidebarProps) {
                 onAdd={handleAddTicket}
                 initialType={newTicketType}
                 roomId={selectedRoom?.id}
+                roomNumber={selectedRoom?.id} // Assuming ID is the display number here based on prior usage
                 ticketOptions={ticketOptions}
                 maintenanceOptions={maintenanceOptions}
                 agentOptions={agentOptions}
+                role={role}
+            />
+
+            <TicketConfirmationModal
+                isOpen={isConfirmOpen}
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={confirmCreateTicket}
+                ticketData={pendingTicketData}
+                roomNumber={selectedRoom?.id}
+                isSubmitting={isCreating}
             />
         </>
     );

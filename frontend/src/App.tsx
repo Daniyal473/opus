@@ -4,6 +4,8 @@ import { ForgotPassword } from './components/auth/ForgotPassword'
 import { ResetPassword } from './components/auth/ResetPassword'
 import { RentalConsole } from './components/rental/RentalConsole'
 import { AdminDashboard } from './components/admin/AdminDashboard'
+import { TicketRequestView } from './components/admin/TicketRequestView'
+import { GuestManagementView } from './components/rental/GuestManagementView'
 import { Toast } from './components/ui/Toast'
 import { WifiOff, RefreshCw } from 'lucide-react'
 import './App.css'
@@ -13,7 +15,7 @@ const INACTIVITY_TIMEOUT = 600000; // 10 minutes
 
 function App() {
   const [loginError, setLoginError] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState<'signin' | 'forgot-password' | 'dashboard' | 'admin' | 'reset-password'>('signin');
+  const [currentPage, setCurrentPage] = useState<'signin' | 'forgot-password' | 'dashboard' | 'admin' | 'reset-password' | 'ticket-request' | 'guest-management'>('signin');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'blue' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -142,8 +144,8 @@ function App() {
     }
   };
 
-  const handlePageChange = (page: 'admin' | 'dashboard' | 'forgot-password') => {
-    if (page === 'admin' || page === 'dashboard') {
+  const handlePageChange = (page: 'admin' | 'dashboard' | 'forgot-password' | 'ticket-request' | 'guest-management') => {
+    if (page === 'admin' || page === 'dashboard' || page === 'ticket-request' || page === 'guest-management') {
       setIsLoading(true);
     }
     sessionStorage.setItem('currentPage', page);
@@ -209,7 +211,10 @@ function App() {
         <RentalConsole
           onLogout={handleLogout}
           onAdminPanelClick={() => handlePageChange('admin')}
+          onTicketRequestClick={() => handlePageChange('ticket-request')}
+          onGuestManagementClick={() => handlePageChange('guest-management')}
           userRole={currentUser?.role}
+          username={currentUser?.username}
         />
       ) : currentPage === 'admin' ? (
         <AdminDashboard
@@ -217,6 +222,17 @@ function App() {
           onResetPassword={() => handlePageChange('forgot-password')}
           onBack={() => handlePageChange('dashboard')}
           username="Admin"
+        />
+      ) : currentPage === 'ticket-request' ? (
+        <TicketRequestView
+          onBack={() => handlePageChange('dashboard')}
+          role={currentUser?.role}
+        />
+      ) : currentPage === 'guest-management' ? (
+        <GuestManagementView
+          onBack={() => handlePageChange('dashboard')}
+          username={currentUser?.username}
+          role={currentUser?.role}
         />
       ) : currentPage === 'signin' ? (
         <SignIn

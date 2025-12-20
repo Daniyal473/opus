@@ -8,6 +8,7 @@ import requests
 import json
 from django.conf import settings
 from api.password_reset_views import encrypt_password, decrypt_password
+from datetime import datetime, timedelta
 
 # Teable Configuration
 TEABLE_API_URL = 'https://teable.namuve.com/api/table/tblW8KQtEUKhIyY4ARm/record'
@@ -481,10 +482,70 @@ def get_tickets(request):
     try:
         # Check for apartment_id filter
         apartment_id = request.query_params.get('apartment_id')
-        
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+
+        params = {}
+        if start_date and end_date:
+            # Construct Teable filter JSON
+            # The user is in Asia/Karachi (GMT+5).
+            # The 'start_date' and 'end_date' from frontend are YYYY-MM-DD strings.
+            # We want to filter from 00:00:00 (Start Date) to 23:59:59 (End Date) in Karachi time.
+            # Since we send UTC timestamps to Teable (ending in Z), we must convert Karachi time to UTC.
+            # Karachi is UTC+5. So:
+            # Start: 00:00 Karachi -> Previous Day 19:00 UTC
+            # End: 23:59:59 Karachi -> Same Day 18:59:59 UTC
+            
+            # Simple string parsing since format is fixed YYYY-MM-DD
+            try:
+                # Naive Start/End
+                dt_start = datetime.strptime(start_date, '%Y-%m-%d')
+                dt_end = datetime.strptime(end_date, '%Y-%m-%d')
+                
+                # Set times
+                dt_start = dt_start.replace(hour=0, minute=0, second=0)
+                dt_end = dt_end.replace(hour=23, minute=59, second=59)
+                
+                # Adjust for GMT+5 (Subtract 5 hours)
+                dt_start_utc = dt_start - timedelta(hours=5)
+                dt_end_utc = dt_end - timedelta(hours=5)
+                
+                # Format to ISO string with Z
+                start_iso = dt_start_utc.isoformat(timespec='milliseconds') + 'Z'
+                end_iso = dt_end_utc.isoformat(timespec='milliseconds') + 'Z'
+            except ValueError:
+                # Fallback in case of parsing error, though standard date input should be consistent
+                start_iso = f"{start_date}T00:00:00.000Z"
+                end_iso = f"{end_date}T23:59:59.000Z"
+
+            filter_payload = {
+                "conjunction": "and",
+                "filterSet": [
+                    {
+                        "fieldId": "Created Time ",
+                        "operator": "isOnOrAfter",
+                        "value": {
+                            "mode": "exactDate",
+                            "exactDate": start_iso,
+                            "timeZone": "Asia/Karachi"
+                        }
+                    },
+                    {
+                        "fieldId": "Created Time ",
+                        "operator": "isOnOrBefore",
+                        "value": {
+                            "mode": "exactDate",
+                            "exactDate": end_iso,
+                            "timeZone": "Asia/Karachi"
+                        }
+                    }
+                ]
+            }
+            params['filter'] = json.dumps(filter_payload)
+
         response = requests.get(TEABLE_TICKETS_URL, headers={
             'Authorization': f'Bearer {TEABLE_TOKEN}'
-        })
+        }, params=params)
         response.raise_for_status()
         data = response.json()
         
@@ -512,6 +573,8 @@ def get_tickets(request):
                 'arrival': fields.get('Arrival'),
                 'departure': fields.get('Departure'),
                 'occupancy': str(fields.get('Occupancy')) if fields.get('Occupancy') else None,
+                'apartmentId': fields.get('Apartment ID '),
+                'teableId': record.get('id'), # Teable Record ID for updates
             }
             tickets.append(ticket)
             
@@ -560,12 +623,10 @@ def get_linked_records(request):
                  raw_attachments = fields.get('Attachments') or []
                  processed_attachments = []
                  for att in raw_attachments:
-                     processed_attachments.append({
-                         'id': att.get('id'),
-                         'name': att.get('name'),
-                         'url': att.get('presignedUrl'), # Map presignedUrl to url
-                         'type': att.get('mimetype')
-                     })
+                     # Keep all original fields (path, token, etc.) for write-back compatibility
+                     mapped_att = att.copy()
+                     mapped_att['url'] = att.get('presignedUrl')
+                     processed_attachments.append(mapped_att)
 
                  records.append({
                      'id': record.get('id'),
@@ -608,12 +669,10 @@ def get_linked_records(request):
                  raw_attachments = fields.get('Attachments') or []
                  processed_attachments = []
                  for att in raw_attachments:
-                     processed_attachments.append({
-                         'id': att.get('id'),
-                         'name': att.get('name'),
-                         'url': att.get('presignedUrl'),
-                         'type': att.get('mimetype')
-                     })
+                     # Keep all original fields (path, token, etc.) for write-back compatibility
+                     mapped_att = att.copy()
+                     mapped_att['url'] = att.get('presignedUrl')
+                     processed_attachments.append(mapped_att)
 
                  records.append({
                      'id': record.get('id'),
@@ -666,12 +725,10 @@ def get_linked_records(request):
                          processed_attachments = []
                          
                          for att in raw_attachments:
-                             processed_attachments.append({
-                                 'id': att.get('id'),
-                                 'name': att.get('name'),
-                                 'url': att.get('presignedUrl'),
-                                 'type': att.get('mimetype')
-                             })
+                             # Keep all original fields (path, token, etc.) for write-back compatibility
+                             mapped_att = att.copy()
+                             mapped_att['url'] = att.get('presignedUrl')
+                             processed_attachments.append(mapped_att)
 
                          records.append({
                              'id': record.get('id'),
@@ -1061,6 +1118,7 @@ def login_proxy(request):
                         user_found = {
                             'id': record.get('id'),
                             'name': fields.get('Username ', db_email.split('@')[0]),
+                            'username': fields.get('Username ', db_email.split('@')[0]),
                             'email': db_email,
                             'role': fields.get('Role ', 'user')
                         }
@@ -1266,3 +1324,164 @@ def reset_password_proxy(request):
         print(f"DEBUG: Exception: {e}")
 
         return Response({'error': str(e)}, status=500)
+
+
+@api_view(['PATCH'])
+def update_ticket(request):
+    """
+    Updates a ticket in Teable.
+    Payload: { "teable_id": "rec...", "fields": { "Status ": "Closed", ... } }
+    """
+    TEABLE_TICKETS_URL = 'https://teable.namuve.com/api/table/tblt7O90EhETDjXraHk/record'
+    
+    try:
+        teable_id = request.data.get('teable_id')
+        fields_to_update = request.data.get('fields')
+        
+        if not teable_id or not fields_to_update:
+            return Response({'error': 'Teable ID and fields are required'}, status=400)
+            
+        url = f"{TEABLE_TICKETS_URL}/{teable_id}"
+        
+        payload = {
+            "record": {
+                "fields": fields_to_update
+            },
+            "fieldKeyType": "name"
+        }
+        
+        response = requests.patch(url, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}',
+            'Content-Type': 'application/json'
+        }, json=payload)
+        
+        response.raise_for_status()
+        
+        return Response(response.json())
+        
+    except requests.RequestException as e:
+        print(f"Error updating ticket: {e}")
+        return Response({'error': f"Failed to update ticket: {str(e)}"}, status=500)
+
+@api_view(['PATCH'])
+def update_linked_record(request):
+    """
+    Updates a linked record (Guest, Visitor, Maintenance) in Teable.
+    Payload: { "record_id": "rec...", "ticket_type": "In/Out", "fields": { "Name": "New Name", ... } }
+    """
+    try:
+        record_id = request.data.get('record_id')
+        ticket_type = request.data.get('ticket_type')
+        fields_to_update = request.data.get('fields')
+        
+        if not record_id or not ticket_type or not fields_to_update:
+            return Response({'error': 'Record ID, Ticket Type, and Fields are required'}, status=400)
+            
+        record_id = str(record_id).strip()
+            
+        # Determine Table ID based on Ticket Type
+        if ticket_type == 'In/Out':
+            table_id = 'tblRmHEtBZSwi7HoTCz'
+        elif ticket_type == 'Visit':
+            table_id = 'tbl2D1gLavfJn6GMe0o'
+        elif ticket_type == 'Maintenance':
+            table_id = 'tblxBUElSacHNStAJU2'
+        else:
+            return Response({'error': f'Invalid Ticket Type: {ticket_type}'}, status=400)
+            
+        url = f"https://teable.namuve.com/api/table/{table_id}/record/{record_id}"
+        
+        # Filter out frontend-only keys (lowercase) and keep only Title Case keys (Teable fields)
+        # Also ensure Attachments is NOT sent here if we handled it via upload, 
+        # UNLESS we are removing attachments (updating the list).
+        # Teable expects Attachments to be a list of objects or null.
+        sanitized_fields = {}
+        for key, value in fields_to_update.items():
+            # Heuristic: Teable fields usually start with Uppercase or have special chars, 
+            # Frontend internal keys are lowercase (name, cnic). 
+            # We only want keys that were mapped by getTeableField.
+            if key[0].isupper() or key == 'Attachments': 
+                 sanitized_fields[key] = value
+
+        print(f"Updating Teable Record: {url} with fields: {list(sanitized_fields.keys())}")
+        
+        payload = {
+            "record": {
+                "fields": sanitized_fields
+            },
+            "fieldKeyType": "name"
+        }
+        
+        print(f"DEBUG UPDATE: URL={url}")
+        print(f"DEBUG UPDATE: TokenPrefix={TEABLE_TOKEN[:10]}")
+        print(f"DEBUG UPDATE: RecordID={repr(record_id)}")
+        
+        response = requests.patch(url, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}',
+             'Content-Type': 'application/json'
+        }, json=payload)
+        
+        if response.status_code == 404:
+             print(f"Teable returned 404. Table: {table_id}, Record: {record_id}")
+             print(f"Teable 404 Response Body: {response.text}") # Detailed error
+             return Response({'error': f"Record not found in Teable (404). ID: {record_id}, Table: {table_id}, Url: {url}, Body: {response.text}"}, status=404)
+        
+        response.raise_for_status()
+        
+        return Response(response.json())
+        
+    except requests.RequestException as e:
+        print(f"Error updating linked record: {e}")
+        error_msg = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+             error_msg += f" | Body: {e.response.text}"
+        return Response({'error': f"Failed to update linked record: {error_msg}"}, status=500)
+
+@api_view(['POST'])
+def upload_attachment(request):
+    try:
+        if 'file' not in request.FILES:
+             return Response({'error': 'No file provided'}, status=400)
+
+        file_obj = request.FILES['file']
+        record_id = request.data.get('record_id', '').strip()
+        ticket_type = request.data.get('ticket_type', '').strip()
+        
+        if not record_id or not ticket_type:
+            return Response({'error': 'Record ID and Ticket Type are required for upload'}, status=400)
+
+        # Map Ticket Type to Table ID and Attachment Field ID
+        # IDs found via debug script
+        CONFIG = {
+            'In/Out': {'table': 'tblRmHEtBZSwi7HoTCz', 'field': 'fldJdomUaG2ufpuQj45'},
+            'Visit': {'table': 'tbl2D1gLavfJn6GMe0o', 'field': 'fldqdP9sU0QwBmf6An8'},
+            'Maintenance': {'table': 'tblxBUElSacHNStAJU2', 'field': 'fldfyMH1DGwYsJlzTGy'}
+        }
+        
+        config = CONFIG.get(ticket_type)
+        if not config:
+            return Response({'error': f'Invalid or unsupported ticket type: {ticket_type}'}, status=400)
+            
+        table_id = config['table']
+        field_id = config['field']
+
+        # Specific Teable Endpoint: POST /api/table/{tableId}/record/{recordId}/{fieldId}/uploadAttachment
+        TEABLE_UPLOAD_URL = f"https://teable.namuve.com/api/table/{table_id}/record/{record_id}/{field_id}/uploadAttachment"
+        
+        # Teable upload expects 'file' key
+        files = {'file': (file_obj.name, file_obj, file_obj.content_type)}
+        
+        response = requests.post(TEABLE_UPLOAD_URL, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}'
+        }, files=files)
+        
+        response.raise_for_status()
+        return Response(response.json())
+        
+    except requests.RequestException as e:
+        print(f"Error uploading attachment: {e}")
+        error_details = str(e)
+        if e.response is not None:
+             error_details += f" | Response: {e.response.text}"
+        return Response({'error': f'Failed to upload attachment: {error_details}'}, status=500)
+

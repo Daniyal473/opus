@@ -1,0 +1,87 @@
+.ticket-request-search-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.ticket-request-date-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ticket-request-date-input {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 9999px;
+    /* rounded-full */
+    font-size: 0.875rem;
+    color: #374151;
+    outline: none;
+    transition: all 0.2s;
+    background-color: white;
+}
+
+.ticket-request-date-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.ticket-request-search-wrapper {
+    position: relative;
+    width: auto;
+}
+
+.ticket-request-search-input {
+    padding-left: 1rem;
+    padding-right: 0rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    width: 10rem;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.ticket-request-search-input:focus {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.ticket-request-search-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ticket-request-date-label {
+    font-size: 0.875rem;
+    color: #4b5563;
+    /* text-gray-600 */
+    font-weight: 500;
+}
+
+.ticket-request-start-button {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-left: 0.5rem;
+}
+
+.ticket-request-start-button:hover {
+    filter: brightness(90%);
+}
