@@ -1,5 +1,5 @@
 import { X, Loader2 } from 'lucide-react';
-import type { Ticket } from '../../types/rental';
+
 
 interface TicketConfirmationModalProps {
     isOpen: boolean;
