@@ -31,7 +31,7 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
     const showAdminPanel = normalizedRole === 'super-admin' || normalizedRole === 'super admin';
 
     // Permission to see all rooms (Super Admin + Admin)
-    const canSeeAllRooms = showAdminPanel || normalizedRole === 'admin';
+    const canSeeAllRooms = showAdminPanel || normalizedRole === 'admin' || normalizedRole === 'fdo';
 
     // 1. Filter by User Access first (Centralized Logic)
     const filteredRecordsByUser = useMemo(() => {
@@ -156,7 +156,7 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
                     )}
 
                     {/* Ticket Request Button */}
-                    {canSeeAllRooms && onTicketRequestClick && (
+                    {canSeeAllRooms && onTicketRequestClick && normalizedRole !== 'fdo' && (
                         <div
                             className="px-4 py-2 text-xs font-medium cursor-pointer hover:bg-teal-50 flex items-center gap-2 bg-teal-50 text-teal-600 border-b border-gray-300"
                             onClick={onTicketRequestClick}

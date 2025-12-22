@@ -94,13 +94,13 @@ function App() {
     }
 
     if (savedPage) {
-      if (savedPage === 'dashboard' || savedPage === 'admin') {
+      if (['dashboard', 'admin', 'ticket-request', 'guest-management'].includes(savedPage)) {
         if (lastActivity) {
           const elapsed = Date.now() - parseInt(lastActivity);
 
           if (elapsed < INACTIVITY_TIMEOUT) {
             setIsLoading(true);
-            setCurrentPage(savedPage as 'dashboard' | 'admin');
+            setCurrentPage(savedPage as any);
             setTimeout(() => setIsLoading(false), 500);
           } else {
             sessionStorage.clear();

@@ -198,6 +198,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                     >
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
+                        <option value="FDO">FDO</option>
                         <option value="super-admin">Super Admin</option>
                     </select>
                 </div>

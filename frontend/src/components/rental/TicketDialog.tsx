@@ -665,23 +665,27 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                                                     )}
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    {!record.checkInDate && (
-                                                        <button
-                                                            onClick={() => handleGuestStatus(record.id, 'in')}
-                                                            disabled={!!record.checkInDate}
-                                                            className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors h-fit ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-                                                        >
-                                                            Start
-                                                        </button>
-                                                    )}
-                                                    {record.checkInDate && (
-                                                        <button
-                                                            onClick={() => handleGuestStatus(record.id, 'out')}
-                                                            disabled={!!record.checkOutDate}
-                                                            className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors h-fit ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
-                                                        >
-                                                            End
-                                                        </button>
+                                                    {role?.toLowerCase() !== 'user' && (
+                                                        <>
+                                                            {!record.checkInDate && (
+                                                                <button
+                                                                    onClick={() => handleGuestStatus(record.id, 'in')}
+                                                                    disabled={!!record.checkInDate}
+                                                                    className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors h-fit ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                                                                >
+                                                                    Start
+                                                                </button>
+                                                            )}
+                                                            {record.checkInDate && (
+                                                                <button
+                                                                    onClick={() => handleGuestStatus(record.id, 'out')}
+                                                                    disabled={!!record.checkOutDate}
+                                                                    className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors h-fit ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
+                                                                >
+                                                                    End
+                                                                </button>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </div>
                                             </div>
@@ -874,7 +878,7 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                                                     Name
                                                 </th>
                                                 {displayTicket.type !== 'In/Out' && (
@@ -897,9 +901,11 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Check Out
                                                 </th>
-                                                <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Actions
-                                                </th>
+                                                {role?.toLowerCase() !== 'user' && (
+                                                    <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Actions
+                                                    </th>
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -1164,31 +1170,33 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                                                             </span>
                                                         ) : '-'}
                                                     </td>
-                                                    <td className="px-3 py-3 text-right text-sm font-medium align-top">
-                                                        {(displayTicket.type === 'In/Out' || displayTicket.type === 'Visit' || displayTicket.type === 'Maintenance') && (
+                                                    {role?.toLowerCase() !== 'user' && (
+                                                        <td className="px-3 py-3 text-right text-sm font-medium align-top">
+                                                            {(displayTicket.type === 'In/Out' || displayTicket.type === 'Visit' || displayTicket.type === 'Maintenance') && (
 
-                                                            <div className="flex flex-col gap-2 items-end">
-                                                                {!record.checkInDate && (
-                                                                    <button
-                                                                        onClick={() => handleGuestStatus(record.id, 'in')}
-                                                                        disabled={!!record.checkInDate}
-                                                                        className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors w-16 text-center ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-                                                                    >
-                                                                        In
-                                                                    </button>
-                                                                )}
-                                                                {record.checkInDate && (
-                                                                    <button
-                                                                        onClick={() => handleGuestStatus(record.id, 'out')}
-                                                                        disabled={!!record.checkOutDate}
-                                                                        className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors w-16 text-center ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
-                                                                    >
-                                                                        Out
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </td>
+                                                                <div className="flex flex-col gap-2 items-end">
+                                                                    {!record.checkInDate && (
+                                                                        <button
+                                                                            onClick={() => handleGuestStatus(record.id, 'in')}
+                                                                            disabled={!!record.checkInDate}
+                                                                            className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors w-16 text-center ${record.checkInDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                                                                        >
+                                                                            In
+                                                                        </button>
+                                                                    )}
+                                                                    {record.checkInDate && (
+                                                                        <button
+                                                                            onClick={() => handleGuestStatus(record.id, 'out')}
+                                                                            disabled={!!record.checkOutDate}
+                                                                            className={`px-3 py-1 text-white text-xs font-medium rounded transition-colors w-16 text-center ${record.checkOutDate ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
+                                                                        >
+                                                                            Out
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1224,7 +1232,7 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                             </button>
                         </>
                     ) : (
-                        role?.toLowerCase() !== 'user' && (
+                        role?.toLowerCase() !== 'user' && role?.toLowerCase() !== 'fdo' && (
                             <button className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-md text-sm font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] shadow-sm transition-colors" onClick={() => {
                                 handleEditClick();
                             }}>
