@@ -15,7 +15,7 @@ interface AddTicketDialogProps {
     username?: string;
 }
 
-export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out', roomId, roomNumber, ticketOptions = [], maintenanceOptions = [], agentOptions = [], role, username }: AddTicketDialogProps) {
+export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out', roomId, roomNumber, ticketOptions = [], maintenanceOptions = [], agentOptions = [], role }: AddTicketDialogProps) {
     const [title, setTitle] = useState('');
     const [type, setType] = useState<Ticket['type']>(initialType);
     const [visitType, setVisitType] = useState(''); // Separate state for Visit subtype

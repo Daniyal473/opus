@@ -208,7 +208,7 @@ function App() {
     }, 300);
   };
 
-  const handleTicketUpdated = (ticketId: string) => {
+  const handleTicketUpdated = () => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     const newToast = { id, message: 'Ticket updated successfully' };
     setActiveToasts(prev => [newToast, ...prev]);

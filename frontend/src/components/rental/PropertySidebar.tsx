@@ -5,12 +5,7 @@ import { TicketDialog } from './TicketDialog';
 import { AddTicketDialog } from './AddTicketDialog';
 import { TicketConfirmationModal } from './TicketConfirmationModal';
 import { TicketCommentsDialog } from './TicketCommentsDialog'; // Added import
-import {
-    Check,
-    ClipboardList,
-    Plus,
-    MessageSquare
-} from 'lucide-react';
+
 
 interface PropertySidebarProps {
     selectedRoom: RoomCardData | null;

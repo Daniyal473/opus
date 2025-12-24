@@ -380,7 +380,7 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
         setSelectedRoom(room);
     };
 
-    const handleTicketCreated = (ticketId: string, action: string) => {
+    const handleTicketCreated = () => {
         const now = Date.now();
         if (now - lastToastRef.current < 500) return; // Debounce
         lastToastRef.current = now;
@@ -401,7 +401,7 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
         }, 5000);
     };
 
-    const handleTicketUpdated = (ticketId: string) => {
+    const handleTicketUpdated = () => {
         const now = Date.now();
         if (now - lastToastRef.current < 500) return; // Debounce
         lastToastRef.current = now;

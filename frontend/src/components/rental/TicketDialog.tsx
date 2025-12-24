@@ -36,7 +36,7 @@ interface LinkedRecord {
     }[];
 }
 
-export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions = [], maintenanceOptions = [], agentOptions = [], role, apartmentNumber, apartmentId, username }: TicketDialogProps) {
+export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions = [], maintenanceOptions = [], agentOptions = [], role, apartmentNumber, username }: TicketDialogProps) {
     const [linkedRecords, setLinkedRecords] = useState<LinkedRecord[]>([]);
     const [isLoadingGuests, setIsLoadingGuests] = useState(false);
     const [previewAttachment, setPreviewAttachment] = useState<{ url: string, name: string, type: string } | null>(null);
@@ -1273,7 +1273,7 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                     {displayTicket.type !== 'Cleaning' && role?.toLowerCase() !== 'user' && (
                         <div className="w-full md:w-[400px] h-full bg-gray-50 flex flex-col flex-shrink-0 border-l border-gray-200">
                             <TicketComments
-                                ticketId={displayTicket.ticketId || displayTicket.id}
+                                ticketId={displayTicket.id}
                                 username={username}
                                 apartmentNumber={displayTicket.apartmentNumber || apartmentNumber} // Fallback to prop (from PropertySidebar) if ticket is missing it
                                 ticketType={displayTicket.type}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Reply } from 'lucide-react';
+import { X } from 'lucide-react';
 import { API_BASE_URL } from '../../services/api';
 
 interface TicketCommentsDialogProps {

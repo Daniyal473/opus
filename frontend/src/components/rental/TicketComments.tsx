@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, User as UserIcon } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { API_BASE_URL } from '../../services/api';
 
 interface TicketCommentsProps {
