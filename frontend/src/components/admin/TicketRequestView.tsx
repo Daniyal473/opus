@@ -9,9 +9,11 @@ import { TicketDialog } from '../rental/TicketDialog';
 interface TicketRequestViewProps {
     onBack: () => void;
     role?: string;
+    username?: string;
+    onTicketUpdated?: (ticketId: string) => void;
 }
 
-export function TicketRequestView({ onBack, role }: TicketRequestViewProps) {
+export function TicketRequestView({ onBack, role, username, onTicketUpdated }: TicketRequestViewProps) {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -23,6 +25,60 @@ export function TicketRequestView({ onBack, role }: TicketRequestViewProps) {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
+
+    // Track URL changes (for Back/Forward)
+    const [locationSearch, setLocationSearch] = useState(window.location.search);
+
+    useEffect(() => {
+        const handlePopState = () => setLocationSearch(window.location.search);
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
+    // Sync URL to selectedTicket
+    useEffect(() => {
+        const params = new URLSearchParams(locationSearch);
+        const ticketParam = params.get('ticket');
+
+        if (ticketParam) {
+            // If already selected, do nothing
+            if (selectedTicket && selectedTicket.id === ticketParam) return;
+
+            // Find ticket in current list
+            const found = tickets.find(t => t.id === ticketParam);
+            if (found) {
+                setSelectedTicket(found);
+                setShowEditDialog(true);
+            }
+        } else {
+            // If URL cleared, close dialog
+            if (showEditDialog) {
+                setShowEditDialog(false);
+                setSelectedTicket(null);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [locationSearch, tickets]);
+
+    // Sync selectedTicket to URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (selectedTicket && showEditDialog) {
+            if (params.get('ticket') !== selectedTicket.id) {
+                params.set('ticket', selectedTicket.id);
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+                setLocationSearch(window.location.search);
+            }
+        } else {
+            if (params.has('ticket')) {
+                params.delete('ticket');
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+                setLocationSearch(window.location.search);
+            }
+        }
+    }, [selectedTicket, showEditDialog]);
 
     // Default dates: Today - 3 days to Today + 3 days
     // Using local time YYYY-MM-DD format
@@ -140,10 +196,11 @@ export function TicketRequestView({ onBack, role }: TicketRequestViewProps) {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Open': return 'bg-blue-100 text-blue-800';
-            case 'Approved': return 'bg-teal-100 text-teal-800';
-            case 'Closed': return 'bg-gray-100 text-gray-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'Open': return 'text-blue-700 bg-blue-100 border-blue-200';
+            case 'Under Review': return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+            case 'Approved': return 'text-teal-700 bg-teal-100 border-teal-200';
+            case 'Closed': return 'text-gray-700 bg-gray-100 border-gray-200';
+            default: return 'text-gray-700 bg-gray-100 border-gray-200';
         }
     };
 
@@ -174,6 +231,16 @@ export function TicketRequestView({ onBack, role }: TicketRequestViewProps) {
             formatDateTime(ticket.created).toLowerCase().includes(searchLower)
         );
     });
+
+    const handleTicketUpdate = (updatedTicket?: Ticket) => {
+        if (updatedTicket) {
+            setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+            if (onTicketUpdated) onTicketUpdated(updatedTicket.id);
+        } else {
+            loadData();
+            // Don't trigger toast here - TicketDialog calls onUpdate twice
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -326,6 +393,24 @@ export function TicketRequestView({ onBack, role }: TicketRequestViewProps) {
 
                                                         try {
                                                             await updateTicket(ticket.teableId, { status: newStatus });
+                                                            if (onTicketUpdated) onTicketUpdated(ticket.id);
+
+                                                            // Log status change to activity table and n8n webhook
+                                                            try {
+                                                                await fetch(`${API_BASE_URL}/log-status-change/`, {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        status: newStatus,
+                                                                        apartment_number: roomMap[String(ticket.apartmentId)] || ticket.apartmentId,
+                                                                        ticket_type: ticket.type,
+                                                                        ticket_id: ticket.id,
+                                                                        username: username
+                                                                    })
+                                                                });
+                                                            } catch (logErr) {
+                                                                console.error("Failed to log status change:", logErr);
+                                                            }
                                                         } catch (error) {
                                                             console.error("Error updating status:", error);
                                                             alert("Failed to update status.");
@@ -353,7 +438,7 @@ export function TicketRequestView({ onBack, role }: TicketRequestViewProps) {
                                                             setSelectedTicket(ticket);
                                                             setShowEditDialog(true);
                                                         }}
-                                                        className="flex items-center gap-1 text-[var(--color-primary)] hover:text-teal-700 px-2 py-1 rounded hover:bg-teal-50 transition-colors text-xs font-medium border border-teal-200"
+                                                        className="flex items-center gap-1 text-[var(--color-primary)] hover:text-yellow-700 px-2 py-1 rounded hover:bg-yellow-50 transition-colors text-xs font-medium border border-yellow-200"
                                                         title="View Details"
                                                     >
                                                         <Eye size={14} />
@@ -375,19 +460,18 @@ export function TicketRequestView({ onBack, role }: TicketRequestViewProps) {
 
             <TicketDialog
                 isOpen={showEditDialog}
-                onClose={() => setShowEditDialog(false)}
-                ticket={selectedTicket}
-                onUpdate={() => {
-                    // Quick reload logic
-                    // Use current state dates
-                    loadData(startDate, endDate);
+                onClose={() => {
                     setShowEditDialog(false);
                     setSelectedTicket(null);
                 }}
+                ticket={selectedTicket}
+                onUpdate={handleTicketUpdate}
                 ticketOptions={ticketOptions}
                 maintenanceOptions={maintenanceOptions}
                 agentOptions={agentOptions}
                 role={role}
+                username={username}
+                apartmentNumber={selectedTicket && selectedTicket.apartmentId ? (roomMap[String(selectedTicket.apartmentId)] || String(selectedTicket.apartmentId)) : undefined}
             />
         </div>
     );

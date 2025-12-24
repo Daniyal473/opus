@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
-import customLogo from '../../data/custom-logo.png';
+import opusLogo from '../../assets/opus-logo.jpg';
 
 import { Toast } from '../ui/Toast';
 
@@ -70,13 +70,13 @@ export const SignIn: React.FC<SignInProps> = ({ onSignIn, onForgotPassword, erro
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-yellow-50 flex items-center justify-center p-6">
             <div className="w-full max-w-md">
                 <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
                     {/* Logo */}
                     <div className="flex flex-col items-center mb-6">
                         <img
-                            src={customLogo}
+                            src={opusLogo}
                             alt="Hotel Logo"
                             className="w-32 h-auto mb-4"
                         />
@@ -105,7 +105,7 @@ export const SignIn: React.FC<SignInProps> = ({ onSignIn, onForgotPassword, erro
                                 }}
                                 placeholder="Email"
                                 className={`w-full px-4 py-3.5 rounded-xl border ${errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'
-                                    } text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition`}
+                                    } text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition`}
                             />
                             {errors.email && <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>}
                         </div>
@@ -122,7 +122,7 @@ export const SignIn: React.FC<SignInProps> = ({ onSignIn, onForgotPassword, erro
                                     }}
                                     placeholder="Password"
                                     className={`w-full px-4 py-3.5 rounded-xl border ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'
-                                        } text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition pr-12`}
+                                        } text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition pr-12`}
                                 />
                                 <button
                                     type="button"
@@ -142,7 +142,7 @@ export const SignIn: React.FC<SignInProps> = ({ onSignIn, onForgotPassword, erro
                                 id="remember"
                                 checked={rememberPassword}
                                 onChange={(e) => setRememberPassword(e.target.checked)}
-                                className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                                className="w-5 h-5 rounded border-gray-300 text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer"
                             />
                             <label htmlFor="remember" className="ml-3 text-gray-700 text-sm cursor-pointer">
                                 Remember password
@@ -163,7 +163,7 @@ export const SignIn: React.FC<SignInProps> = ({ onSignIn, onForgotPassword, erro
                         {/* Login Button */}
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3.5 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            className="w-full bg-[var(--color-primary)] text-white font-semibold py-3.5 px-6 rounded-xl hover:brightness-90 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                         >
                             Login
                         </button>
@@ -173,7 +173,7 @@ export const SignIn: React.FC<SignInProps> = ({ onSignIn, onForgotPassword, erro
                     <div className="mt-6 text-center">
                         <button
                             onClick={onForgotPassword}
-                            className="text-blue-600 hover:text-blue-700 text-sm font-medium transition"
+                            className="text-[var(--color-primary)] hover:opacity-80 text-sm font-medium transition"
                         >
                             Forgot your password?
                         </button>

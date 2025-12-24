@@ -40,7 +40,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onDelete, onEdit }) =
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-[var(--color-primary)] rounded-lg flex items-center justify-center">
                     <Users size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
@@ -62,7 +62,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onDelete, onEdit }) =
                     {users.map((user) => (
                         <div
                             key={user.id}
-                            className="bg-gray-50 border border-gray-200 rounded-lg p-5 hover:shadow-md hover:border-blue-200 transition-all duration-200"
+                            className="bg-gray-50 border border-gray-200 rounded-lg p-5 hover:shadow-md hover:border-[var(--color-primary)] transition-all duration-200"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
@@ -97,7 +97,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onDelete, onEdit }) =
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => onEdit(user)}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        className="p-2 text-[var(--color-primary)] hover:bg-yellow-50 rounded-lg transition-colors"
                                         title="Edit user"
                                     >
                                         <Edit2 size={18} />

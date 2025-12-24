@@ -87,7 +87,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-[var(--color-primary)] rounded-lg flex items-center justify-center">
                     <UserPlus size={20} className="text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Create New User</h2>
@@ -106,7 +106,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                         value={formData.name}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 rounded-lg border ${errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
-                            } focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition`}
+                            } focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition`}
                         placeholder="Enter username"
                     />
                     {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
@@ -124,7 +124,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                         value={formData.email}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
-                            } focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition`}
+                            } focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition`}
                         placeholder="user@example.com"
                     />
                     {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
@@ -143,7 +143,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                             value={formData.password}
                             onChange={handleChange}
                             className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
-                                } focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition pr-12`}
+                                } focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition pr-12`}
                             placeholder="Enter password"
                         />
                         <button
@@ -170,7 +170,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                             value={formData.confirmPassword}
                             onChange={handleChange}
                             className={`w-full px-4 py-3 rounded-lg border ${errors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
-                                } focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition pr-12`}
+                                } focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition pr-12`}
                             placeholder="Confirm your password"
                         />
                         <button
@@ -194,7 +194,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                         name="role"
                         value={formData.role}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition"
                     >
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
@@ -206,7 +206,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    className="w-full bg-[var(--color-primary)] text-white font-semibold py-3 px-6 rounded-lg hover:brightness-90 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                     Create User
                 </button>

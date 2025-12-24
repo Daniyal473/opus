@@ -9,7 +9,7 @@ interface RoomCardProps {
 export function RoomCard({ room, isActive, onClick }: RoomCardProps) {
     return (
         <div
-            className={`bg-white rounded-lg shadow-md border-l-4 border-teal-500 w-full cursor-pointer transition-all ${isActive ? 'ring-2 ring-teal-600 shadow-lg' : 'hover:shadow-lg'
+            className={`bg-white rounded-lg shadow-md border-l-4 border-[#c7b25e] w-full cursor-pointer transition-all ${isActive ? 'ring-2 ring-[#c7b25e] shadow-lg' : 'hover:shadow-lg'
                 }`}
             onClick={onClick}
         >
@@ -17,14 +17,14 @@ export function RoomCard({ room, isActive, onClick }: RoomCardProps) {
             <div className="p-2 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-bold text-gray-800">{room.id}</h2>
-                    <span className="bg-teal-100 text-teal-800 text-xs font-medium px-2 py-1 rounded">{room.type}</span>
+                    <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">{room.type}</span>
                 </div>
-            </div>
+            </div >
 
             {/* Content */}
-            <div className="p-2 space-y-2">
+            < div className="p-2 space-y-2" >
                 {/* Tickets */}
-                <div>
+                < div >
                     <div className="space-y-1 text-sm ">
                         <div className="flex justify-between">
                             <div className="flex gap-2">
@@ -47,10 +47,10 @@ export function RoomCard({ room, isActive, onClick }: RoomCardProps) {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div >
 
                 {/* Details */}
-                <div>
+                < div >
                     <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
                             <div className="flex gap-2">
@@ -75,8 +75,8 @@ export function RoomCard({ room, isActive, onClick }: RoomCardProps) {
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
+                </div >
+            </div >
+        </div >
     );
 }

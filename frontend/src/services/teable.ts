@@ -132,7 +132,7 @@ export const fetchTickets = async (startDate?: string, endDate?: string): Promis
     }
 };
 
-export const updateTicket = async (teableId: string, updates: Partial<Ticket>) => {
+export const updateTicket = async (teableId: string, updates: Partial<Ticket>, apartmentNumber?: string, ticketType?: string, ticketId?: string, username?: string) => {
     try {
         // Map frontend fields to backend/Teable fields
         const fields: any = {};
@@ -144,14 +144,18 @@ export const updateTicket = async (teableId: string, updates: Partial<Ticket>) =
         if (updates.arrival) fields["Arrival"] = updates.arrival;
         if (updates.departure) fields["Departure"] = updates.departure;
 
-        const response = await fetch(`${API_BASE_URL}/tickets/update/`, {
+        const response = await fetch(`${API_BASE_URL}/update-ticket/${teableId}/`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 teable_id: teableId,
-                fields: fields
+                fields: fields,
+                apartment_number: apartmentNumber, // Pass for logging
+                ticket_type: ticketType, // Pass for logging
+                ticket_id: ticketId, // Pass for logging
+                username: username // Pass for logging
             }),
         });
 
@@ -232,7 +236,7 @@ export const fetchTicketsByRoom = async (apartmentId: string): Promise<Ticket[]>
     }
 };
 
-export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 'status'>, apartmentId: string | number, ticketOptions: string[] = [], maintenanceOptions: string[] = []) => {
+export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 'status'>, apartmentId: string | number, ticketOptions: string[] = [], maintenanceOptions: string[] = [], username?: string) => {
     try {
         // Use FormData to allow file uploads
         const formData = new FormData();
@@ -240,6 +244,10 @@ export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 's
 
         // Always send the original type value
         formData.append('type', newTicket.type);
+
+        if (username) {
+            formData.append('username', username);
+        }
 
         // If type is one of the Visit subtypes (Guest, Foodpanda, etc.), send it as visit_subtype
         // We accept ticketOptions as arg or default to empty if not passed, but ideally should be passed

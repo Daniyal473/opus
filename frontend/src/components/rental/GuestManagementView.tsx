@@ -36,6 +36,60 @@ export function GuestManagementView({ onBack, username, role }: GuestManagementV
     const [agentOptions, setAgentOptions] = useState<string[]>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    // Track URL changes (for Back/Forward)
+    const [locationSearch, setLocationSearch] = useState(window.location.search);
+
+    useEffect(() => {
+        const handlePopState = () => setLocationSearch(window.location.search);
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
+    // Sync URL to selectedTicket
+    useEffect(() => {
+        const params = new URLSearchParams(locationSearch);
+        const ticketParam = params.get('ticket');
+
+        if (ticketParam) {
+            // If already selected, do nothing
+            if (selectedTicket && selectedTicket.id === ticketParam) return;
+
+            // Find ticket in current list
+            const found = tickets.find(t => t.id === ticketParam);
+            if (found) {
+                setSelectedTicket(found);
+                setShowEditDialog(true);
+            }
+        } else {
+            // If URL cleared, close dialog
+            if (showEditDialog) {
+                setShowEditDialog(false);
+                setSelectedTicket(null);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [locationSearch, tickets]);
+
+    // Sync selectedTicket to URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (selectedTicket && showEditDialog) {
+            if (params.get('ticket') !== selectedTicket.id) {
+                params.set('ticket', selectedTicket.id);
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+                setLocationSearch(window.location.search);
+            }
+        } else {
+            if (params.has('ticket')) {
+                params.delete('ticket');
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+                setLocationSearch(window.location.search);
+            }
+        }
+    }, [selectedTicket, showEditDialog]);
+
     // Initial Load: Fetch Rooms managed by user
     useEffect(() => {
         const loadRooms = async () => {
@@ -205,7 +259,7 @@ export function GuestManagementView({ onBack, username, role }: GuestManagementV
                         <button
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             disabled={!selectedRoomId}
-                            className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-white rounded-md text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-white rounded-md text-sm font-medium hover:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             <Plus size={16} />
                             Create Ticket
@@ -304,7 +358,7 @@ export function GuestManagementView({ onBack, username, role }: GuestManagementV
                                                     setSelectedTicket(ticket);
                                                     setShowEditDialog(true);
                                                 }}
-                                                className="flex items-center gap-1 text-[var(--color-primary)] hover:text-teal-700 px-3 py-1 rounded-md hover:bg-teal-50 transition-colors text-sm font-medium"
+                                                className="flex items-center gap-1 text-[var(--color-primary)] hover:text-yellow-700 px-3 py-1 rounded-md hover:bg-yellow-50 transition-colors text-sm font-medium"
                                                 title="View Ticket"
                                             >
                                                 <Eye size={16} />

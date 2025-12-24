@@ -1,16 +1,25 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { RoomCardData, Ticket } from '../../types/rental';
 import { API_BASE_URL } from '../../services/api';
 import { TicketDialog } from './TicketDialog';
 import { AddTicketDialog } from './AddTicketDialog';
 import { TicketConfirmationModal } from './TicketConfirmationModal';
+import { TicketCommentsDialog } from './TicketCommentsDialog'; // Added import
+import {
+    Check,
+    ClipboardList,
+    Plus,
+    MessageSquare
+} from 'lucide-react';
 
 interface PropertySidebarProps {
     selectedRoom: RoomCardData | null;
     role?: string;
+    username?: string;
+    targetTicketAction?: { id: string; timestamp: number } | null;
+    onTicketCreated?: (ticketId: string, action: string) => void;
+    onTicketUpdated?: (ticketId: string) => void;
 }
-
-
 
 function formatDateTime(isoString: string): string {
     if (!isoString) return '';
@@ -26,9 +35,10 @@ function formatDateTime(isoString: string): string {
     });
 }
 
-export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
+export function PropertySidebar({ selectedRoom, role, username, targetTicketAction, onTicketCreated, onTicketUpdated }: PropertySidebarProps) {
     const [tickets, setTickets] = useState<Ticket[]>([]);
-    const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
     const [isAddTicketOpen, setIsAddTicketOpen] = useState(false);
     const [isTicketDropdownOpen, setIsTicketDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -41,6 +51,19 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
     const [pendingTicketData, setPendingTicketData] = useState<any>(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+
+    const [commentTicketId, setCommentTicketId] = useState<string | null>(null); // State for comments dialog
+
+    // Auto-open ticket from notification
+    useEffect(() => {
+        if (targetTicketAction && tickets.length > 0) {
+            const found = tickets.find(t => String(t.id).trim() === String(targetTicketAction.id).trim());
+            if (found) {
+                // Check if we already have it open to avoid loops, though strict equality on targetTicketAction object check prevents this mostly
+                setSelectedTicketId(found.id);
+            }
+        }
+    }, [targetTicketAction, tickets]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -108,6 +131,7 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
     const fetchTickets = useCallback(async () => {
         if (!selectedRoom) {
             setTickets([]);
+            setIsLoading(false);
             return;
         }
         try {
@@ -121,14 +145,81 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
             }
         } catch (error) {
             console.error('Error fetching tickets:', error);
+        } finally {
+            setIsLoading(false);
         }
     }, [selectedRoom]);
 
     useEffect(() => {
-        fetchTickets();
-    }, [fetchTickets]);
+        // Clear immediately on change to avoid showing old room's tickets
+        setTickets([]);
+
+        if (!selectedRoom) {
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true); // Start loading immediately (covers debounce + fetch time)
+
+        const timer = setTimeout(() => {
+            fetchTickets();
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, [fetchTickets, selectedRoom]);
 
     const [newTicketType, setNewTicketType] = useState<string>('In/Out');
+    const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null); // Use ID for selection source of truth
+    const lastProcessedAction = useRef<number>(0);
+
+    // Handle external ticket navigation (e.g. from notifications)
+    useEffect(() => {
+        if (targetTicketAction && targetTicketAction.timestamp > lastProcessedAction.current) {
+            // Wait for tickets to be loaded
+            if (tickets.length > 0) {
+                const found = tickets.find(t => t.id === targetTicketAction.id);
+                if (found) {
+                    setSelectedTicketId({ ...found }.id); // Set ID
+                    lastProcessedAction.current = targetTicketAction.timestamp;
+                } else if (!isLoading) {
+                    // Ticket NOT found and NOT loading - maybe deleted or user lacks permission?
+                    // We mark as processed so we don't keep trying forever
+                    console.warn(`Target ticket ${targetTicketAction.id} not found in room.`);
+                    lastProcessedAction.current = targetTicketAction.timestamp;
+                }
+            }
+        }
+    }, [targetTicketAction, tickets, isLoading]);
+
+    // Sync selectedTicketId to URL
+    // Sync selectedTicketId to URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const currentTicketParam = params.get('ticket');
+
+        if (selectedTicketId) {
+            if (currentTicketParam !== selectedTicketId) {
+                params.set('ticket', selectedTicketId);
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+            }
+        } else {
+            // Only clear URL if we are NOT loading and NOT waiting for a target action
+            // This prevents clearing the URL in the milliseconds before the ticket loads
+            const isWaitingForTarget = targetTicketAction?.id === currentTicketParam;
+
+            if (currentTicketParam && !isLoading && !isWaitingForTarget) {
+                params.delete('ticket');
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+            }
+        }
+    }, [selectedTicketId, isLoading, targetTicketAction]);
+
+    const selectedTicket = useMemo(() =>
+        tickets.find(t => t.id === selectedTicketId) || null,
+        [tickets, selectedTicketId]
+    );
 
     const handleTicketTypeSelect = (type: Ticket['type']) => {
         setNewTicketType(type);
@@ -165,6 +256,7 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
             // Use FormData to allow file uploads
             const formData = new FormData();
             formData.append('apartment_id', String(apartmentId));
+            formData.append('apartment_number', selectedRoom.id); // Send Room Number for logging
 
             // Always send the original type value
             formData.append('type', newTicket.type);
@@ -194,6 +286,10 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
                 console.log('Sending Agent:', newTicket.agent);
             }
 
+            if (username) {
+                formData.append('username', username);
+            }
+
             // Handle Guests and Attachments for In/Out tickets
             if (newTicket.guests && newTicket.guests.length > 0) {
                 // Serialize generic guest data
@@ -214,7 +310,7 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
                 });
             }
 
-            const response = await fetch(`${API_BASE_URL}/tickets/create/`, {
+            const response = await fetch(`${API_BASE_URL}/create-ticket/`, {
                 method: 'POST',
                 // Header for Content-Type is set automatically by browser with boundary for FormData
                 body: formData,
@@ -226,6 +322,20 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
 
             const data = await response.json();
             console.log('Ticket created successfully', data);
+
+            if (onTicketCreated) {
+                let tId = '';
+                // Helper to extract from fields
+                const getDetails = (fields: any) => fields['Ticket ID'] || fields['Ticket ID '];
+
+                if (data.fields) tId = getDetails(data.fields);
+                else if (data.records && data.records[0] && data.records[0].fields) tId = getDetails(data.records[0].fields);
+
+                // Fallback: If no readable ID found, or it's still somehow an internal ID (unlikely for that field but safe), use 'New'
+                if (!tId || String(tId).startsWith('rec')) tId = 'New';
+
+                onTicketCreated(String(tId), 'Created');
+            }
 
             // Clean up
             setPendingTicketData(null);
@@ -339,7 +449,7 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
                                 <button
                                     onClick={() => setIsTicketDropdownOpen(!isTicketDropdownOpen)}
                                     disabled={!selectedRoom}
-                                    className="flex items-center gap-1 px-2 py-1 rounded hover:bg-teal-200 transition-colors bg-teal-100 text-teal-800 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-teal-100"
+                                    className="flex items-center gap-1 px-2 py-1 rounded hover:bg-yellow-200 transition-colors bg-yellow-100 text-yellow-800 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-yellow-100"
                                     title={selectedRoom ? "Add New Ticket" : "Select a room first"}
                                 >
                                     <span>Add New Ticket</span>
@@ -375,33 +485,45 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
                             </div>
                         </div>
                         <div className="space-y-3">
-                            {filteredTickets.map((ticket) => (
-                                <div
-                                    key={ticket.id}
-                                    className="ticket-card bg-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer hover:bg-gray-100 transform transition-transform duration-150 active:scale-[0.99]"
-                                    onClick={() => setSelectedTicket(ticket)}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xs font-semibold text-gray-700">{ticket.id}</span>
-                                                <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(ticket.status)}`}>
-                                                    {ticket.status}
-                                                </span>
-                                            </div>
-                                            <h4 className="text-sm font-medium text-gray-900">{ticket.title}</h4>
-                                        </div>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(ticket.priority)}`}>
-                                            {ticket.priority}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-gray-600 mb-2">{ticket.description}</p>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs text-gray-500">{ticket.type}</span>
-                                        <span className="text-xs text-gray-400">{formatDateTime(ticket.created)}</span>
-                                    </div>
+                            {isLoading ? (
+                                <div className="flex flex-col justify-center items-center py-8 text-gray-500 w-full" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div className="w-8 h-8 border-2 border-gray-200 border-t-[var(--color-primary)] rounded-full animate-spin mb-3"></div>
+                                    <span className="text-sm font-medium">Loading tickets...</span>
                                 </div>
-                            ))}
+                            ) : filteredTickets.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500 text-sm">No tickets found.</div>
+                            ) : (
+                                filteredTickets.map((ticket) => (
+                                    <div
+                                        key={ticket.id}
+                                        className="ticket-card bg-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer hover:bg-gray-100 transform transition-transform duration-150 active:scale-[0.99]"
+                                        onClick={() => setSelectedTicketId(ticket.id)}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xs font-semibold text-gray-700">{ticket.id}</span>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(ticket.status)}`}>
+                                                        {ticket.status}
+                                                    </span>
+                                                </div>
+                                                <h4 className="text-sm font-medium text-gray-900">{ticket.title}</h4>
+                                            </div>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(ticket.priority)}`}>
+                                                {ticket.priority}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-600 mb-2">{ticket.description}</p>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-gray-500">{ticket.type}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-400 group-hover:text-current">{formatDateTime(ticket.created)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+
                         </div>
                     </div>
                 </div>
@@ -409,19 +531,31 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
 
             <TicketDialog
                 ticket={selectedTicket}
-                isOpen={!!selectedTicket}
-                onClose={() => setSelectedTicket(null)}
-                onUpdate={fetchTickets}
+                isOpen={!!selectedTicketId} // Open if ID is selected (and ticket found)
+                onClose={() => setSelectedTicketId(null)}
+                // Optimistic Update Callback
+                onUpdate={(updatedTicket?: Ticket) => {
+                    if (updatedTicket) {
+                        setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+                        if (onTicketUpdated) onTicketUpdated(updatedTicket.id);
+                    } else {
+                        fetchTickets();
+                        if (onTicketUpdated) onTicketUpdated('Unknown');
+                    }
+                }}
                 ticketOptions={ticketOptions}
                 maintenanceOptions={maintenanceOptions}
                 agentOptions={agentOptions}
                 role={role}
+                username={username} // Pass username
+                apartmentNumber={selectedRoom?.id}
             />
 
             <AddTicketDialog
                 isOpen={isAddTicketOpen}
                 onClose={() => setIsAddTicketOpen(false)}
                 onAdd={handleAddTicket}
+                username={username} // Pass username
                 initialType={newTicketType}
                 roomId={selectedRoom?.id}
                 roomNumber={selectedRoom?.id} // Assuming ID is the display number here based on prior usage
@@ -438,6 +572,13 @@ export function PropertySidebar({ selectedRoom, role }: PropertySidebarProps) {
                 ticketData={pendingTicketData}
                 roomNumber={selectedRoom?.id}
                 isSubmitting={isCreating}
+            />
+
+            <TicketCommentsDialog
+                isOpen={!!commentTicketId}
+                ticketId={tickets.find(t => t.id === commentTicketId)?.id || commentTicketId || ''}
+                onClose={() => setCommentTicketId(null)}
+                username={username} // Pass username
             />
         </>
     );

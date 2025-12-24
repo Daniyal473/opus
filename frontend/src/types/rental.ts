@@ -79,5 +79,6 @@ export interface Ticket {
     arrival?: string;
     departure?: string;
     apartmentId?: number; // Linked apartment ID
+    apartmentNumber?: string; // Room Number (e.g. 101)
     teableId?: string; // ID for updates
 }

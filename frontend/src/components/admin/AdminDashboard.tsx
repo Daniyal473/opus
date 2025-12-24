@@ -166,7 +166,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onRese
     console.log('AdminDashboard is rendering with users:', users);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-yellow-50">
             <Header onLogout={onLogout} onResetPassword={onResetPassword} onBack={onBack} userName={username} />
 
             <main className="max-w-7xl mx-auto px-6 py-8">

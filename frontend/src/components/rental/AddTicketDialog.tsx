@@ -12,9 +12,10 @@ interface AddTicketDialogProps {
     agentOptions?: string[];
     roomNumber?: string;
     role?: string;
+    username?: string;
 }
 
-export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out', roomId, roomNumber, ticketOptions = [], maintenanceOptions = [], agentOptions = [], role }: AddTicketDialogProps) {
+export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out', roomId, roomNumber, ticketOptions = [], maintenanceOptions = [], agentOptions = [], role, username }: AddTicketDialogProps) {
     const [title, setTitle] = useState('');
     const [type, setType] = useState<Ticket['type']>(initialType);
     const [visitType, setVisitType] = useState(''); // Separate state for Visit subtype
@@ -388,7 +389,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                                 type="file"
                                                 multiple
                                                 accept="image/*,application/pdf"
-                                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 placeholder-transparent"
+                                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 placeholder-transparent"
                                                 onChange={(e) => handleAttachmentChange(index, e)}
                                                 disabled={guest.attachments.length >= 2}
                                             />
@@ -458,7 +459,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                     <button
                         type="submit"
                         form="ticket-form"
-                        className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-md text-sm font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] shadow-sm transition-colors"
+                        className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-md text-sm font-medium hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] shadow-sm transition-colors"
                     >
                         Create Ticket
                     </button>

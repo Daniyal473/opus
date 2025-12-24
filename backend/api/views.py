@@ -114,6 +114,172 @@ def get_agents(request):
         print(f"Error fetching agents from Teable: {e}")
         return Response({'error': 'Failed to fetch agents'}, status=500)
 
+def log_ticket_action(action, status_val, apartment_number, ticket_type=None, ticket_id=None, username=None, managed_by="System"):
+    """
+    Logs ticket actions to the specific Teable table.
+    """
+    LOG_URL = 'https://teable.namuve.com/api/table/tblgBUXf5G1HdpzxXiW/record'
+    try:
+        # Avoid creating empty records if critical info is missing
+        if not apartment_number:
+            print("Warning: Skipping log_ticket_action due to missing apartment_number")
+            return 
+
+        # Use Field Names directly (user provided name "Ticket Type")
+        payload = {
+            "records": [
+                {
+                    "fields": {
+                        "Ticket Status": status_val,
+                        "Apartment Number": str(apartment_number),
+                        "Action": action,
+                        "Ticket Type": ticket_type,
+                        "Ticket ID": ticket_id,
+                        "User": username,
+                    }
+                }
+            ],
+            "fieldKeyType": "name"
+        }
+        
+        response = requests.post(LOG_URL, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}',
+            'Content-Type': 'application/json'
+        }, json=payload)
+        
+        if response.status_code not in [200, 201]:
+             print(f"Failed to log ticket action: {response.text}")
+        else:
+             print(f"Logged ticket action: {action} for {apartment_number} by {username}")
+             
+        # N8N Webhook Logging
+        # Sends the same logical data to the N8N workflow
+        N8N_WEBHOOK_URL = "https://n8n.namuve.com/webhook/997cf0f9-5d64-4d0e-a064-57b413e95d22"
+        n8n_payload = {
+            "Ticket Status": status_val,
+            "Apartment Number": str(apartment_number),
+            "Action": action,
+            "Ticket Type": ticket_type,
+            "Ticket ID": ticket_id,
+            "User": username,
+        }
+        
+        try:
+            # Note: Webhook requested GET, so passing data as query params
+            n8n_response = requests.get(N8N_WEBHOOK_URL, params=n8n_payload)
+            if n8n_response.status_code not in [200, 201]:
+                 print(f"Failed to send to N8N: {n8n_response.text}")
+            else:
+                 print(f"Sent to N8N: {action} for {apartment_number}")
+        except Exception as n8n_err:
+             print(f"Error sending to N8N: {n8n_err}")
+
+    except Exception as e:
+        print(f"Error in log_ticket_action: {e}")
+
+@api_view(['POST'])
+def log_status_change(request):
+    """
+    Logs a status change to the activity table and n8n webhook.
+    Called from frontend when ticket status is changed via dropdown.
+    """
+    try:
+        data = request.data
+        new_status = data.get('status')
+        apartment_number = data.get('apartment_number')
+        ticket_type = data.get('ticket_type')
+        ticket_id = data.get('ticket_id')
+        username = data.get('username')
+        
+        if not apartment_number or not new_status:
+            return Response({'error': 'Missing required fields'}, status=400)
+        
+        log_ticket_action(
+            action="Changed status of",
+            status_val=new_status,
+            apartment_number=apartment_number,
+            ticket_type=ticket_type,
+            ticket_id=ticket_id,
+            username=username
+        )
+        
+        return Response({'success': True}, status=200)
+    except Exception as e:
+        print(f"Error in log_status_change: {e}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_ticket_activities(request):
+    LOG_URL = 'https://teable.namuve.com/api/table/tblgBUXf5G1HdpzxXiW/record'
+    try:
+        # Filter for Today OR Yesterday (Asia/Karachi)
+        filter_payload = {
+            "conjunction": "or",
+            "filterSet": [
+                {
+                    "fieldId": "Created Time",
+                    "operator": "is",
+                    "value": {
+                        "mode": "today",
+                        "timeZone": "Asia/Karachi"
+                    }
+                },
+                {
+                    "fieldId": "Created Time",
+                    "operator": "is",
+                    "value": {
+                        "mode": "yesterday",
+                        "timeZone": "Asia/Karachi"
+                    }
+                }
+            ]
+        }
+        
+        params = {
+            'filter': json.dumps(filter_payload),
+            'limit': 1000
+        }
+
+        response = requests.get(LOG_URL, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}',
+        }, params=params)
+        
+        if response.status_code == 200:
+            data = response.json()
+            records = data.get('records', [])
+            
+            # Map fields safely
+            # Field IDs: 
+            # Status: fldMJxZZQB5psQrDxdr
+            # Apt: fldn8lKxqW0d4hcgCwh
+            # Action: fldO7TD4Ygu9xg8y8SL
+            
+            activity_log = []
+            for record in records:
+                fields = record.get('fields', {})
+                activity_log.append({
+                    'id': record.get('id'),
+                    'status': fields.get('Ticket Status') or fields.get('fldMJxZZQB5psQrDxdr', 'Unknown'),
+                    'apartment': fields.get('Apartment Number') or fields.get('fldn8lKxqW0d4hcgCwh', 'Unknown'),
+                    'action': fields.get('Action') or fields.get('fldO7TD4Ygu9xg8y8SL', 'Unknown'),
+                    'ticketType': fields.get('Ticket Type', 'Unknown'),
+                    'ticketId': fields.get('Ticket ID', 'Unknown'),
+                    'username': fields.get('User', None),
+                    # Teable returns createdTime in record meta if not in fields, usually
+                    'createdTime': record.get('createdTime') 
+                })
+            
+            # Sort by createdTime desc (newest first)
+            activity_log.sort(key=lambda x: x['createdTime'] or '', reverse=True)
+            
+            return Response({'activities': activity_log})
+        else:
+            return Response({'error': 'Failed to fetch activities'}, status=500)
+            
+    except Exception as e:
+        print(f"Error fetching ticket activities: {e}")
+        return Response({'error': str(e)}, status=500)
+
 @api_view(['POST'])
 def create_ticket(request):
     TEABLE_CREATE_URL = 'https://teable.namuve.com/api/table/tblt7O90EhETDjXraHk/record'
@@ -462,7 +628,53 @@ def create_ticket(request):
                     if isinstance(ticket_response_data, dict):
                         ticket_response_data['worker_error'] = str(e)
 
+        # Re-fetch the created record to ensure we get computed fields like 'ID ' (Ticket ID)
+        # Teable often doesn't return computed fields in the immediate POST response.
+        new_ticket_id = None
+        if ticket_response_data and 'records' in ticket_response_data and len(ticket_response_data['records']) > 0:
+             record_id = ticket_response_data['records'][0]['id']
+             try:
+                 refetch_url = f"{TEABLE_CREATE_URL}/{record_id}"
+                 print(f"Refetching new ticket {record_id} to get computed fields...")
+                 refetch_res = requests.get(refetch_url, headers={
+                        'Authorization': f'Bearer {TEABLE_TOKEN}'
+                 })
+                 if refetch_res.status_code == 200:
+                      # GET /record/{id} returns the single record object directly: { "id": "...", "fields": { ... } }
+                      # We want to maintain consistency for frontend which might expect { records: [...] } from POST,
+                      # BUT my frontend logic in PropertySidebar handles `data.id` (single record) or `data.records`.
+                      # So passing the single record back is fine, OR we wrap it.
+                      # Let's wrap it to strictly match the "records" array format if that was the original shape, 
+                      # but for logging extracting ID is easier from single.
+                      
+                      single_record = refetch_res.json()
+                      # Update local var for logging
+                      new_ticket_id = single_record.get('fields', {}).get('ID ')
+                      
+                      # Update response data to include this single record as a list to match expected "records" shape if possible,
+                      # or just return the single record if our frontend handles it.
+                      # Frontend `PropertySidebar` handles `data.records` OR `data.id`.
+                      # So returning the single record is compatible and cleaner.
+                      ticket_response_data = single_record
+                      
+             except Exception as rx:
+                 print(f"Refetch failed: {rx}")
+                 # Fallback to whatever we had
+                 new_ticket_id = ticket_response_data['records'][0]['fields'].get('ID ')
+
+        # LOGGING ACTION: Ticket Created
+        # Try to get apartment_number from request, or fallback to something else if needed
+        # Frontend should send 'apartment_number'
+        apt_num_log = data.get('apartment_number')
+        
+        if apt_num_log:
+             log_ticket_action("Created", "Open", apt_num_log, ticket_type=main_ticket_type, ticket_id=str(new_ticket_id) if new_ticket_id else None, username=data.get('username'))
+        # else:
+             # print("LOGGING SKIPPED: ...")
+
         return Response(ticket_response_data, status=201)
+
+
 
     except requests.RequestException as e:
         print(f"Error creating ticket in Teable: {e}")
@@ -485,7 +697,23 @@ def get_tickets(request):
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
 
+        # Construct Teable filter JSON
         params = {}
+        filter_conditions = []
+        
+        if apartment_id:
+             # Add Apartment ID filter
+             # Apartment ID is a number field
+             try:
+                 apt_id_val = int(apartment_id)
+                 filter_conditions.append({
+                     "fieldId": "Apartment ID ",
+                     "operator": "is",
+                     "value": apt_id_val
+                 })
+             except ValueError:
+                 pass # Invalid ID format, ignore filter or handle error
+
         if start_date and end_date:
             # Construct Teable filter JSON
             # The user is in Asia/Karachi (GMT+5).
@@ -518,30 +746,34 @@ def get_tickets(request):
                 start_iso = f"{start_date}T00:00:00.000Z"
                 end_iso = f"{end_date}T23:59:59.000Z"
 
+            filter_conditions.append({
+                "fieldId": "Created Time ",
+                "operator": "isOnOrAfter",
+                "value": {
+                    "mode": "exactDate",
+                    "exactDate": start_iso,
+                    "timeZone": "Asia/Karachi"
+                }
+            })
+            filter_conditions.append({
+                "fieldId": "Created Time ",
+                "operator": "isOnOrBefore",
+                "value": {
+                    "mode": "exactDate",
+                    "exactDate": end_iso,
+                    "timeZone": "Asia/Karachi"
+                }
+            })
+
+        if filter_conditions:
             filter_payload = {
                 "conjunction": "and",
-                "filterSet": [
-                    {
-                        "fieldId": "Created Time ",
-                        "operator": "isOnOrAfter",
-                        "value": {
-                            "mode": "exactDate",
-                            "exactDate": start_iso,
-                            "timeZone": "Asia/Karachi"
-                        }
-                    },
-                    {
-                        "fieldId": "Created Time ",
-                        "operator": "isOnOrBefore",
-                        "value": {
-                            "mode": "exactDate",
-                            "exactDate": end_iso,
-                            "timeZone": "Asia/Karachi"
-                        }
-                    }
-                ]
+                "filterSet": filter_conditions
             }
             params['filter'] = json.dumps(filter_payload)
+            
+        # Increase limit to ensure we get all tickets for the apartment
+        params['limit'] = 1000
 
         response = requests.get(TEABLE_TICKETS_URL, headers={
             'Authorization': f'Bearer {TEABLE_TOKEN}'
@@ -574,6 +806,7 @@ def get_tickets(request):
                 'departure': fields.get('Departure'),
                 'occupancy': str(fields.get('Occupancy')) if fields.get('Occupancy') else None,
                 'apartmentId': fields.get('Apartment ID '),
+                'apartmentNumber': fields.get('Apartment Number '),
                 'teableId': record.get('id'), # Teable Record ID for updates
             }
             tickets.append(ticket)
@@ -1327,7 +1560,7 @@ def reset_password_proxy(request):
 
 
 @api_view(['PATCH'])
-def update_ticket(request):
+def update_ticket(request, record_id):
     """
     Updates a ticket in Teable.
     Payload: { "teable_id": "rec...", "fields": { "Status ": "Closed", ... } }
@@ -1356,6 +1589,28 @@ def update_ticket(request):
         }, json=payload)
         
         response.raise_for_status()
+        
+        # LOGGING ACTION: Ticket Updated
+        apt_num_log = request.data.get('apartment_number')
+        print(f"DEBUG: update_ticket Apartment Number: {apt_num_log}")
+        
+        if apt_num_log:
+             new_status = fields_to_update.get('Status ')
+             print(f"DEBUG: Status Update: {new_status}")
+             log_status = new_status if new_status else "Unchanged"
+             
+             # Try to get Ticket Type if present in fields or request, else None
+             log_type = fields_to_update.get('Ticket Type') # Only if updating type
+             if not log_type:
+                 # If not updating type, we might want to fetch it? 
+                 # For now, just logging None if not available, or check request root
+                 log_type = request.data.get('ticket_type')
+
+             log_id = request.data.get('ticket_id')
+             log_ticket_action("Updated", log_status, apt_num_log, ticket_type=log_type, ticket_id=log_id, username=request.data.get('username'))
+        else:
+             # print("DEBUG: Skipping logging in update_ticket - No apartment_number found")
+             pass
         
         return Response(response.json())
         
@@ -1484,4 +1739,122 @@ def upload_attachment(request):
         if e.response is not None:
              error_details += f" | Response: {e.response.text}"
         return Response({'error': f'Failed to upload attachment: {error_details}'}, status=500)
+
+@api_view(['POST'])
+def create_ticket_comment(request):
+    TEABLE_COMMENTS_URL = 'https://teable.namuve.com/api/table/tbl6lXbzV6iQHnjiu0e/record'
+    
+    try:
+        user = request.data.get('user')
+        comment = request.data.get('comment')
+        ticket_id = request.data.get('ticket_id')
+
+        if not all([user, comment, ticket_id]):
+            return Response({'error': 'Missing required fields'}, status=400)
+
+        # Ensure ticket_id is a number
+        try:
+            ticket_id_num = int(ticket_id)
+        except (ValueError, TypeError):
+             return Response({'error': 'Ticket ID must be a number'}, status=400)
+
+        payload = {
+            "records": [
+                {
+                    "fields": {
+                        "User": user,
+                        "Comments": comment,
+                        "Ticket ID": ticket_id_num
+                    }
+                }
+            ]
+        }
+
+        # Extract additional fields for logging
+        apartment_number = request.data.get('apartment_number')
+        ticket_type = request.data.get('ticket_type')
+        ticket_status = request.data.get('ticket_status')
+
+        # Log the action (Before or after creating comment? After logic usually better but parallel is fine)
+        # We do this asynchronously or just sequentially. Sequential is fine.
+        # Log the action (Always log, even if apartment is missing)
+        log_ticket_action(
+            action="Commented on",
+            status_val=ticket_status or "Unknown",
+            apartment_number=apartment_number or "Unknown",
+            ticket_type=ticket_type,
+            ticket_id=str(ticket_id_num),
+            username=user
+        )
+
+        response = requests.post(TEABLE_COMMENTS_URL, json=payload, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}',
+            'Content-Type': 'application/json'
+        })
+        
+        response.raise_for_status()
+        return Response(response.json())
+
+    except requests.RequestException as e:
+        print(f"Error creating comment in Teable: {e}")
+        error_msg = 'Failed to create comment'
+        if e.response is not None:
+             print(e.response.text)
+             try:
+                 # Try to parse Teable error to give more info
+                 teable_error = e.response.json()
+                 error_msg = f"Teable Error: {teable_error}"
+             except:
+                 error_msg = f"Teable Error: {e.response.text}"
+        
+        return Response({'error': error_msg}, status=500)
+
+@api_view(['GET'])
+def get_ticket_comments(request):
+    TEABLE_COMMENTS_URL = 'https://teable.namuve.com/api/table/tbl6lXbzV6iQHnjiu0e/record'
+    ticket_id = request.query_params.get('ticket_id')
+
+    if not ticket_id:
+        return Response({'error': 'Ticket ID is required'}, status=400)
+
+    try:
+        # Ideally we use a filter here, but for now we'll fetch all and filter in Python 
+        # to ensure we match the numeric Ticket ID correctly without guessing Teable's filter syntax.
+        # If the table grows large, we must switch to server-side filtering.
+        
+        response = requests.get(TEABLE_COMMENTS_URL, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}'
+        }, params={'fieldKeyType': 'name'}) # Use names to match our write structure
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        comments = []
+        try:
+            target_ticket_id = int(ticket_id)
+        except ValueError:
+             return Response({'error': 'Ticket ID must be a number'}, status=400)
+
+        for record in data.get('records', []):
+            fields = record.get('fields', {})
+            # Check if this comment belongs to the requested ticket
+            # The field name for Ticket ID is "Ticket ID"
+            rec_ticket_id = fields.get('Ticket ID')
+            
+            if rec_ticket_id == target_ticket_id:
+                comments.append({
+                    'id': record.get('id'),
+                    'user': fields.get('User', 'Unknown'),
+                    'comment': fields.get('Comments', ''),
+                    'created': fields.get('Time') or fields.get('createdTime') # Fallback if specific time field is missing
+                })
+        
+        # Sort by created time (assuming ISO string) - Oldest first
+        comments.sort(key=lambda x: x.get('created', '') or '')
+
+        return Response({'comments': comments})
+
+    except requests.RequestException as e:
+        print(f"Error fetching comments from Teable: {e}")
+        return Response({'error': 'Failed to fetch comments'}, status=500)
 

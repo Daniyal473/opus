@@ -125,7 +125,7 @@ export function TicketConfirmationModal({ isOpen, onClose, onConfirm, ticketData
                     <button
                         onClick={onConfirm}
                         disabled={isSubmitting}
-                        className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-white rounded-md font-medium hover:bg-teal-700 shadow-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-white rounded-md font-medium hover:brightness-90 shadow-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isSubmitting && <Loader2 className="animate-spin" size={16} />}
                         {isSubmitting ? 'Creating...' : 'Confirm & Create'}

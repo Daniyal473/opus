@@ -80,7 +80,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-yellow-50 flex items-center justify-center p-6">
             <div className="w-full max-w-md">
                 <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
                     <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">Reset Password</h2>
@@ -107,7 +107,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
                                     onChange={(e) => handlePasswordChange(e.target.value)}
                                     placeholder="New Password"
                                     required
-                                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition pr-12"
+                                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition pr-12"
                                 />
                                 <button
                                     type="button"
@@ -147,7 +147,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     placeholder="Confirm Password"
                                     required
-                                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition pr-12"
+                                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition pr-12"
                                 />
                                 <button
                                     type="button"
@@ -162,7 +162,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3.5 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-[var(--color-primary)] text-white font-semibold py-3.5 px-6 rounded-xl hover:brightness-90 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Reset Password
                         </button>
@@ -170,7 +170,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) =
 
                     <button
                         onClick={onBack}
-                        className="mt-6 w-full text-blue-600 hover:text-blue-700 font-medium transition text-center"
+                        className="mt-6 w-full text-[var(--color-primary)] hover:opacity-80 font-medium transition text-center"
                     >
                         Back to Sign In
                     </button>
