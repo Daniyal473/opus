@@ -811,6 +811,9 @@ def get_tickets(request):
             }
             tickets.append(ticket)
             
+        # Sort by created date descending (newest first)
+        tickets.sort(key=lambda x: x['created'] or '', reverse=True)
+            
         return Response({'tickets': tickets})
     except requests.RequestException as e:
         print(f"Error fetching tickets from Teable: {e}")
@@ -1082,8 +1085,10 @@ def update_guest_status(request):
         elif ticket_type == 'Maintenance':
             url = TEABLE_MAINTENANCE_URL
              
-        from datetime import datetime
-        now_iso = datetime.now().isoformat()
+        from datetime import datetime, timedelta, timezone
+        # Force PKT (UTC+5)
+        pkt_offset = timezone(timedelta(hours=5))
+        now_iso = datetime.now(pkt_offset).isoformat()
         
         fields = {}
         if status == 'in':
