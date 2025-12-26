@@ -189,7 +189,10 @@ export function GuestManagementView({ onBack, username, role, onTicketCreated }:
 
         setIsCreating(true);
         try {
-            await createTicket(pendingTicketData, selectedRoomId);
+            // Find selected room to get number
+            const room = myRooms.find(r => String(r.fields['Apartment ID']) === selectedRoomId);
+            const apartmentNumber = room ? room.fields['Apartment Number '] || room.id : selectedRoomId; // Fallback
+            await createTicket(pendingTicketData, selectedRoomId, [], [], username, String(apartmentNumber));
             // alert("Ticket created successfully!"); // Removed alert
             onTicketCreated?.(); // Trigger toast
             setPendingTicketData(null);

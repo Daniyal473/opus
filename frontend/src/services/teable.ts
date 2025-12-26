@@ -236,11 +236,14 @@ export const fetchTicketsByRoom = async (apartmentId: string): Promise<Ticket[]>
     }
 };
 
-export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 'status'>, apartmentId: string | number, ticketOptions: string[] = [], maintenanceOptions: string[] = [], username?: string) => {
+export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 'status'>, apartmentId: string | number, ticketOptions: string[] = [], maintenanceOptions: string[] = [], username?: string, apartmentNumber?: string) => {
     try {
         // Use FormData to allow file uploads
         const formData = new FormData();
         formData.append('apartment_id', String(apartmentId));
+        if (apartmentNumber) {
+            formData.append('apartment_number', apartmentNumber);
+        }
 
         // Always send the original type value
         formData.append('type', newTicket.type);
