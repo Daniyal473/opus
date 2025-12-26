@@ -290,7 +290,7 @@ export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 's
             });
         }
 
-        const response = await fetch(`${API_BASE_URL}/tickets/create/`, {
+        const response = await fetch(`${API_BASE_URL}/create-ticket/`, {
             method: 'POST',
             body: formData,
         });

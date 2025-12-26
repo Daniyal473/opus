@@ -859,6 +859,7 @@ def get_linked_records(request):
                      # Keep all original fields (path, token, etc.) for write-back compatibility
                      mapped_att = att.copy()
                      mapped_att['url'] = att.get('presignedUrl')
+                     mapped_att['type'] = att.get('mimetype')
                      processed_attachments.append(mapped_att)
 
                  records.append({
@@ -905,6 +906,7 @@ def get_linked_records(request):
                      # Keep all original fields (path, token, etc.) for write-back compatibility
                      mapped_att = att.copy()
                      mapped_att['url'] = att.get('presignedUrl')
+                     mapped_att['type'] = att.get('mimetype')
                      processed_attachments.append(mapped_att)
 
                  records.append({
@@ -961,6 +963,7 @@ def get_linked_records(request):
                              # Keep all original fields (path, token, etc.) for write-back compatibility
                              mapped_att = att.copy()
                              mapped_att['url'] = att.get('presignedUrl')
+                             mapped_att['type'] = att.get('mimetype')
                              processed_attachments.append(mapped_att)
 
                          records.append({

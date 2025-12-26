@@ -11,9 +11,10 @@ interface GuestManagementViewProps {
     onBack: () => void;
     username?: string;
     role?: string;
+    onTicketCreated?: () => void;
 }
 
-export function GuestManagementView({ onBack, username, role }: GuestManagementViewProps) {
+export function GuestManagementView({ onBack, username, role, onTicketCreated }: GuestManagementViewProps) {
     const [myRooms, setMyRooms] = useState<TeableRecord[]>([]);
     const [selectedRoomId, setSelectedRoomId] = useState<string>('');
     const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -189,7 +190,8 @@ export function GuestManagementView({ onBack, username, role }: GuestManagementV
         setIsCreating(true);
         try {
             await createTicket(pendingTicketData, selectedRoomId);
-            alert("Ticket created successfully!");
+            // alert("Ticket created successfully!"); // Removed alert
+            onTicketCreated?.(); // Trigger toast
             setPendingTicketData(null);
             setIsConfirmOpen(false);
             loadTickets(); // Refresh

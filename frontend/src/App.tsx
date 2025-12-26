@@ -217,6 +217,15 @@ function App() {
     }, 5000);
   };
 
+  const handleTicketCreated = () => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const newToast = { id, message: 'Ticket created successfully' };
+    setActiveToasts(prev => [newToast, ...prev]);
+    setTimeout(() => {
+      setActiveToasts(current => current.filter(t => t.id !== id));
+    }, 5000);
+  };
+
   const handleRetry = () => {
     setIsOnline(navigator.onLine);
     window.location.reload();
@@ -296,6 +305,7 @@ function App() {
           onBack={() => handlePageChange('dashboard')}
           username={currentUser?.username}
           role={currentUser?.role}
+          onTicketCreated={handleTicketCreated}
         />
       ) : currentPage === 'signin' ? (
         <SignIn
