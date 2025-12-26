@@ -195,6 +195,16 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
         }
     };
 
+    const handleTicketClose = () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('ticket')) {
+            params.delete('ticket');
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+            setLocationSearch(window.location.search);
+        }
+    };
+
     const handleNotificationItemClick = (notif: NotificationItem) => {
         console.log("Clicked notification:", notif);
         if (notif.apartment) {
@@ -626,6 +636,7 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
                                 targetTicketAction={targetTicketAction}
                                 onTicketCreated={handleTicketCreated}
                                 onTicketUpdated={handleTicketUpdated}
+                                onTicketClose={handleTicketClose}
                             />
                         )
                     }

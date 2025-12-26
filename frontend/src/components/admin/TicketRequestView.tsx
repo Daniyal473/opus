@@ -405,7 +405,8 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated }: T
                                                                         apartment_number: roomMap[String(ticket.apartmentId)] || ticket.apartmentId,
                                                                         ticket_type: ticket.type,
                                                                         ticket_id: ticket.id,
-                                                                        username: username
+                                                                        username: username,
+                                                                        record_id: ticket.teableId
                                                                     })
                                                                 });
                                                             } catch (logErr) {

@@ -114,7 +114,7 @@ def get_agents(request):
         print(f"Error fetching agents from Teable: {e}")
         return Response({'error': 'Failed to fetch agents'}, status=500)
 
-def log_ticket_action(action, status_val, apartment_number, ticket_type=None, ticket_id=None, username=None, managed_by="System"):
+def log_ticket_action(action, status_val, apartment_number, ticket_type=None, ticket_id=None, username=None, managed_by="System", record_id=None):
     """
     Logs ticket actions to the specific Teable table.
     """
@@ -162,6 +162,7 @@ def log_ticket_action(action, status_val, apartment_number, ticket_type=None, ti
             "Ticket Type": ticket_type,
             "Ticket ID": ticket_id,
             "User": username,
+            "Record ID": record_id,
         }
         
         try:
@@ -191,6 +192,8 @@ def log_status_change(request):
         ticket_id = data.get('ticket_id')
         username = data.get('username')
         
+        record_id = data.get('record_id')
+        
         if not apartment_number or not new_status:
             return Response({'error': 'Missing required fields'}, status=400)
         
@@ -200,7 +203,8 @@ def log_status_change(request):
             apartment_number=apartment_number,
             ticket_type=ticket_type,
             ticket_id=ticket_id,
-            username=username
+            username=username,
+            record_id=record_id
         )
         
         return Response({'success': True}, status=200)
@@ -631,6 +635,7 @@ def create_ticket(request):
         # Re-fetch the created record to ensure we get computed fields like 'ID ' (Ticket ID)
         # Teable often doesn't return computed fields in the immediate POST response.
         new_ticket_id = None
+        record_id = None
         if ticket_response_data and 'records' in ticket_response_data and len(ticket_response_data['records']) > 0:
              record_id = ticket_response_data['records'][0]['id']
              try:
@@ -668,7 +673,7 @@ def create_ticket(request):
         apt_num_log = data.get('apartment_number')
         
         if apt_num_log:
-             log_ticket_action("Created", "Open", apt_num_log, ticket_type=main_ticket_type, ticket_id=str(new_ticket_id) if new_ticket_id else None, username=data.get('username'))
+             log_ticket_action("Created", "Open", apt_num_log, ticket_type=main_ticket_type, ticket_id=str(new_ticket_id) if new_ticket_id else None, username=data.get('username'), record_id=record_id)
         # else:
              # print("LOGGING SKIPPED: ...")
 
@@ -1615,7 +1620,7 @@ def update_ticket(request, record_id):
                  log_type = request.data.get('ticket_type')
 
              log_id = request.data.get('ticket_id')
-             log_ticket_action("Updated", log_status, apt_num_log, ticket_type=log_type, ticket_id=log_id, username=request.data.get('username'))
+             log_ticket_action("Updated", log_status, apt_num_log, ticket_type=log_type, ticket_id=log_id, username=request.data.get('username'), record_id=teable_id)
         else:
              # print("DEBUG: Skipping logging in update_ticket - No apartment_number found")
              pass

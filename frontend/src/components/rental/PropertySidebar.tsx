@@ -14,6 +14,7 @@ interface PropertySidebarProps {
     targetTicketAction?: { id: string; timestamp: number } | null;
     onTicketCreated?: (ticketId: string, action: string) => void;
     onTicketUpdated?: (ticketId: string) => void;
+    onTicketClose?: () => void;
 }
 
 function formatDateTime(isoString: string): string {
@@ -30,7 +31,7 @@ function formatDateTime(isoString: string): string {
     });
 }
 
-export function PropertySidebar({ selectedRoom, role, username, targetTicketAction, onTicketCreated, onTicketUpdated }: PropertySidebarProps) {
+export function PropertySidebar({ selectedRoom, role, username, targetTicketAction, onTicketCreated, onTicketUpdated, onTicketClose }: PropertySidebarProps) {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -527,7 +528,10 @@ export function PropertySidebar({ selectedRoom, role, username, targetTicketActi
             <TicketDialog
                 ticket={selectedTicket}
                 isOpen={!!selectedTicketId} // Open if ID is selected (and ticket found)
-                onClose={() => setSelectedTicketId(null)}
+                onClose={() => {
+                    setSelectedTicketId(null);
+                    if (onTicketClose) onTicketClose();
+                }}
                 // Optimistic Update Callback
                 onUpdate={(updatedTicket?: Ticket) => {
                     if (updatedTicket) {
