@@ -95,6 +95,7 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
             status: ticket.status,
             priority: ticket.priority,
             occupancy: ticket.occupancy,
+            parking: ticket.parking,
             arrival: ticket.arrival,
             departure: ticket.departure,
         });
@@ -562,7 +563,7 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                             {(displayTicket.arrival || displayTicket.departure || displayTicket.occupancy || isEditing) && (
                                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                                     <h4 className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-2">Stay Details</h4>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-4 gap-2">
                                         <div className="flex flex-col">
                                             <span className="text-xs text-gray-500 mb-0.5">Arrival</span>
                                             {isEditing ? (
@@ -600,6 +601,19 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                                                 />
                                             ) : displayTicket.occupancy ? (
                                                 <span className="text-sm font-medium text-gray-800">{displayTicket.occupancy}</span>
+                                            ) : <span className="text-sm text-gray-400">-</span>}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-gray-500 mb-0.5">Parking</span>
+                                            {isEditing ? (
+                                                <input
+                                                    type="text"
+                                                    className="text-sm border border-gray-300 rounded px-1 py-0.5 w-full"
+                                                    value={editForm.parking || ''}
+                                                    onChange={e => setEditForm({ ...editForm, parking: e.target.value })}
+                                                />
+                                            ) : displayTicket.parking ? (
+                                                <span className="text-sm font-medium text-gray-800">{displayTicket.parking}</span>
                                             ) : <span className="text-sm text-gray-400">-</span>}
                                         </div>
                                     </div>
@@ -1259,7 +1273,7 @@ export function TicketDialog({ ticket, isOpen, onClose, onUpdate, ticketOptions 
                                     </button>
                                 </>
                             ) : (
-                                role?.toLowerCase() !== 'user' && role?.toLowerCase() !== 'fdo' && !isLoadingGuests && (
+                                role?.toLowerCase() !== 'user' && role?.toLowerCase() !== 'fdo' && role?.toLowerCase() !== 'security' && !isLoadingGuests && (
                                     <button className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-md text-sm font-medium hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] shadow-sm transition-colors" onClick={() => {
                                         handleEditClick();
                                     }}>

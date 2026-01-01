@@ -96,8 +96,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, o
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                             >
                                 <option value="user">User</option>
-                                <option value="admin">Admin</option>
+                                <option value="Admin">Admin</option>
                                 <option value="FDO">FDO</option>
+                                <option value="Security">Security</option>
                                 <option value="super-admin">Super Admin</option>
                             </select>
                         </div>

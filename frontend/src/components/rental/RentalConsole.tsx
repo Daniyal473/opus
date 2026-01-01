@@ -5,7 +5,7 @@ import { RoomGrid } from './RoomGrid';
 import { PropertySidebar } from './PropertySidebar';
 import { TicketRequestView } from '../admin/TicketRequestView';
 
-import { Settings, User, Bell, Search, CheckCircle2, Info, Clock } from 'lucide-react';
+import { Settings, User, Bell, Search, CheckCircle2, Info, Clock, Car } from 'lucide-react';
 import opusLogo from '../../assets/opus-logo.jpg';
 import type { RoomCardData, Ticket } from '../../types/rental';
 import { API_BASE_URL } from '../../services/api';
@@ -18,9 +18,11 @@ interface RentalConsoleProps {
     onGuestManagementClick?: () => void;
     userRole?: string;
     username?: string;
+    onParkingRequestClick?: () => void;
+    onFDOPanelClick?: () => void;
 }
 
-export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClick, onGuestManagementClick, userRole, username }: RentalConsoleProps) {
+export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClick, onGuestManagementClick, onParkingRequestClick, onFDOPanelClick, userRole, username }: RentalConsoleProps) {
     const [selectedFloor, setSelectedFloor] = useState('all');
     const [selectedRoom, setSelectedRoom] = useState<RoomCardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -262,13 +264,13 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
     }, []);
     // Check if user has admin access (handle case and whitespace)
     console.log("RentalConsole received userRole:", userRole);
-    const normalizedRole = userRole?.trim().toLowerCase();
+    const normalizedRole = userRole?.toLowerCase() || '';
 
     // Permission to see the Admin Panel button (Super Admin only)
     const showAdminPanel = normalizedRole === 'super-admin' || normalizedRole === 'super admin';
 
     // Permission to see all rooms (Super Admin + Admin)
-    const canSeeAllRooms = showAdminPanel || normalizedRole === 'admin' || normalizedRole === 'fdo';
+    const canSeeAllRooms = showAdminPanel || normalizedRole === 'admin' || normalizedRole === 'fdo' || normalizedRole === 'security';
 
     // 1. Filter by User Access first (Centralized Logic)
     // ... (rest of code)
@@ -472,14 +474,36 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
                                 </div>
                             )}
 
+                            {/* FDO Panel Button - Hide for Security */}
+                            {/* FDO Panel Button - Hide for Security and User */}
+                            {onFDOPanelClick && normalizedRole !== 'security' && normalizedRole !== 'user' && (
+                                <div
+                                    className="px-4 py-2 text-xs font-medium cursor-pointer hover:bg-yellow-50 flex items-center gap-2 bg-yellow-50 text-yellow-600 border-b border-gray-300"
+                                    onClick={onFDOPanelClick}
+                                >
+                                    <Clock size={16} />
+                                    <span className="font-medium">FDO Panel</span>
+                                </div>
+                            )}
+
                             {/* Ticket Request Button */}
-                            {canSeeAllRooms && onTicketRequestClick && normalizedRole !== 'fdo' && (
+                            {canSeeAllRooms && onTicketRequestClick && normalizedRole !== 'fdo' && normalizedRole !== 'security' && (
                                 <div
                                     className="px-4 py-2 text-xs font-medium cursor-pointer hover:bg-yellow-50 flex items-center gap-2 bg-yellow-50 text-yellow-600 border-b border-gray-300"
                                     onClick={onTicketRequestClick}
                                 >
 
-                                    <span className="font-medium">Ticket Request</span>
+                                    <span className="font-medium">Ticket Requests</span>
+                                </div>
+                            )}
+
+                            {/* Parking Request Button */}
+                            {onParkingRequestClick && normalizedRole !== 'user' && normalizedRole !== 'fdo' && (
+                                <div
+                                    className="px-4 py-2 text-xs font-medium cursor-pointer hover:bg-yellow-50 flex items-center gap-2 bg-yellow-50 text-yellow-600 border-b border-gray-300"
+                                    onClick={onParkingRequestClick}
+                                >
+                                    <span className="font-medium">Parking Requests</span>
                                 </div>
                             )}
 

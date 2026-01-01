@@ -67,6 +67,11 @@ export interface Ticket {
     created: string;
     description: string;
     occupancy?: string;
+    teableId?: string; // ID of the record in Teable
+    parking?: string; // Vehicle Number/Parking Info
+    checkIn?: string; // Check In time
+    checkOut?: string; // Check Out time
+    parkingStatus?: string; // Status of parking (In/Out)
     agent?: string; // Assigned agent
     // New structure
     guests?: {
@@ -80,5 +85,4 @@ export interface Ticket {
     departure?: string;
     apartmentId?: number; // Linked apartment ID
     apartmentNumber?: string; // Room Number (e.g. 101)
-    teableId?: string; // ID for updates
 }

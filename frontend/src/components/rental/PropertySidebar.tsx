@@ -277,6 +277,7 @@ export function PropertySidebar({ selectedRoom, role, username, targetTicketActi
             if (newTicket.arrival) formData.append('arrival', newTicket.arrival);
             if (newTicket.departure) formData.append('departure', newTicket.departure);
             if (newTicket.occupancy) formData.append('occupancy', newTicket.occupancy);
+            if (newTicket.parking) formData.append('parking', newTicket.parking);
             if (newTicket.agent) {
                 formData.append('agent', newTicket.agent);
                 console.log('Sending Agent:', newTicket.agent);

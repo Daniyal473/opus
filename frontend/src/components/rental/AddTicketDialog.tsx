@@ -23,6 +23,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
     const [priority, setPriority] = useState<Ticket['priority']>('Low');
     const [description, setDescription] = useState('');
     const [occupancy, setOccupancy] = useState('');
+    const [parking, setParking] = useState('');
     const [agent, setAgent] = useState('');
     const [arrival, setArrival] = useState('');
     const [departure, setDeparture] = useState('');
@@ -46,6 +47,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
             setPriority('Low');
             setDescription('');
             setOccupancy('');
+            setParking('');
             setAgent('');
             setArrival('');
             setDeparture('');
@@ -91,6 +93,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
             priority,
             description,
             occupancy,
+            parking,
             agent,
             arrival,
             departure,
@@ -104,6 +107,7 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
         setPriority('Low');
         setDescription('');
         setOccupancy('');
+        setParking('');
         setAgent('');
         setArrival('');
         setDeparture('');
@@ -211,6 +215,18 @@ export function AddTicketDialog({ isOpen, onClose, onAdd, initialType = 'In/Out'
                                     value={occupancy}
                                     onChange={(e) => setOccupancy(e.target.value)}
                                     placeholder="e.g. 2"
+                                />
+                            </div>
+
+                            <div className="w-32">
+                                <label htmlFor="parking" className="block text-sm font-medium text-gray-700 mb-1">Parking</label>
+                                <input
+                                    id="parking"
+                                    type="text"
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                                    value={parking}
+                                    onChange={(e) => setParking(e.target.value)}
+                                    placeholder="e.g. A-12"
                                 />
                             </div>
 

@@ -11,9 +11,10 @@ interface TicketRequestViewProps {
     role?: string;
     username?: string;
     onTicketUpdated?: (ticketId: string) => void;
+    pageTitle?: string;
 }
 
-export function TicketRequestView({ onBack, role, username, onTicketUpdated }: TicketRequestViewProps) {
+export function TicketRequestView({ onBack, role, username, onTicketUpdated, pageTitle }: TicketRequestViewProps) {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -79,6 +80,7 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated }: T
             }
         }
     }, [selectedTicket, showEditDialog]);
+
 
     // Default dates: Today - 3 days to Today + 3 days
     // Using local time YYYY-MM-DD format
@@ -254,7 +256,7 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated }: T
                         <ArrowLeft size={20} />
                     </button>
                     <h1 className="text-xl font-bold text-gray-800">
-                        Ticket Requests
+                        {pageTitle || 'Ticket Requests'}
                     </h1>
                 </div>
 

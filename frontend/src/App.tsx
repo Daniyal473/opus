@@ -5,6 +5,8 @@ import { ResetPassword } from './components/auth/ResetPassword'
 import { RentalConsole } from './components/rental/RentalConsole'
 import { AdminDashboard } from './components/admin/AdminDashboard'
 import { TicketRequestView } from './components/admin/TicketRequestView'
+import { ParkingKanbanView } from './components/rental/ParkingKanbanView'
+import { FDOPanelView } from './components/rental/FDOPanelView'
 import { GuestManagementView } from './components/rental/GuestManagementView'
 import { Toast } from './components/ui/Toast'
 import { WifiOff, RefreshCw } from 'lucide-react'
@@ -15,13 +17,13 @@ const INACTIVITY_TIMEOUT = 600000; // 10 minutes
 
 function App() {
   const [loginError, setLoginError] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState<'signin' | 'forgot-password' | 'dashboard' | 'admin' | 'reset-password' | 'ticket-request' | 'guest-management'>(() => {
+  const [currentPage, setCurrentPage] = useState<'signin' | 'forgot-password' | 'dashboard' | 'admin' | 'reset-password' | 'ticket-request' | 'guest-management' | 'parking-request' | 'fdo-panel'>(() => {
     const params = new URLSearchParams(window.location.search);
     const page = params.get('page');
     const token = params.get('token');
 
     if (token) return 'reset-password';
-    if (page && ['signin', 'dashboard', 'admin', 'ticket-request', 'guest-management', 'forgot-password'].includes(page)) {
+    if (page && ['signin', 'dashboard', 'admin', 'ticket-request', 'guest-management', 'forgot-password', 'parking-request', 'fdo-panel'].includes(page)) {
       return page as any;
     }
     return 'signin';
@@ -43,7 +45,7 @@ function App() {
       if (token) {
         setResetToken(token);
         setCurrentPage('reset-password');
-      } else if (page && ['signin', 'dashboard', 'admin', 'ticket-request', 'guest-management', 'forgot-password'].includes(page)) {
+      } else if (page && ['signin', 'dashboard', 'admin', 'ticket-request', 'guest-management', 'forgot-password', 'parking-request', 'fdo-panel'].includes(page)) {
         setCurrentPage(page as any);
       }
     };
@@ -135,7 +137,7 @@ function App() {
     // If we have a valid page in URL, we skip session logic for page restoration to avoid conflict,
     // UNLESS the URL page requires auth and we aren't logged in? 
     // For now, let's assume if URL is present, it wins.
-    if (pageFromUrl && ['signin', 'dashboard', 'admin', 'ticket-request', 'guest-management', 'forgot-password'].includes(pageFromUrl)) {
+    if (pageFromUrl && ['signin', 'dashboard', 'admin', 'ticket-request', 'guest-management', 'forgot-password', 'parking-request'].includes(pageFromUrl)) {
       // Do nothing, let the other useEffect handle it.
       // But we might need check inactivity if it IS a protected page?
       // Let's just trust the user or the auth check logic (which is weak here).
@@ -148,7 +150,7 @@ function App() {
     }
 
     if (savedPage) {
-      if (['dashboard', 'admin', 'ticket-request', 'guest-management'].includes(savedPage)) {
+      if (['dashboard', 'admin', 'ticket-request', 'guest-management', 'parking-request'].includes(savedPage)) {
         if (lastActivity) {
           const elapsed = Date.now() - parseInt(lastActivity);
 
@@ -198,7 +200,7 @@ function App() {
     }
   };
 
-  const handlePageChange = (page: 'admin' | 'dashboard' | 'forgot-password' | 'ticket-request' | 'guest-management') => {
+  const handlePageChange = (page: 'admin' | 'dashboard' | 'forgot-password' | 'ticket-request' | 'guest-management' | 'parking-request') => {
     setIsLoading(true);
     sessionStorage.setItem('lastActivity', Date.now().toString());
     sessionStorage.setItem('currentPage', page);
@@ -280,9 +282,11 @@ function App() {
       {currentPage === 'dashboard' ? (
         <RentalConsole
           onLogout={handleLogout}
-          onAdminPanelClick={() => handlePageChange('admin')}
-          onTicketRequestClick={() => handlePageChange('ticket-request')}
-          onGuestManagementClick={() => handlePageChange('guest-management')}
+          onAdminPanelClick={() => setCurrentPage('admin')}
+          onTicketRequestClick={() => setCurrentPage('ticket-request')}
+          onGuestManagementClick={() => setCurrentPage('guest-management')}
+          onParkingRequestClick={() => setCurrentPage('parking-request')}
+          onFDOPanelClick={() => setCurrentPage('fdo-panel')}
           userRole={currentUser?.role}
           username={currentUser?.username}
         />
@@ -298,6 +302,18 @@ function App() {
           onBack={() => handlePageChange('dashboard')}
           role={currentUser?.role}
           username={currentUser?.username}
+          onTicketUpdated={handleTicketUpdated}
+        />
+      ) : currentPage === 'parking-request' ? (
+        <ParkingKanbanView
+          onBack={() => handlePageChange('dashboard')}
+          role={currentUser?.role}
+          onTicketUpdated={handleTicketUpdated}
+        />
+      ) : currentPage === 'fdo-panel' ? (
+        <FDOPanelView
+          onBack={() => handlePageChange('dashboard')}
+          role={currentUser?.role}
           onTicketUpdated={handleTicketUpdated}
         />
       ) : currentPage === 'guest-management' ? (

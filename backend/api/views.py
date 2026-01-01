@@ -304,7 +304,9 @@ def create_ticket(request):
         priority = data.get('priority')
         arrival = data.get('arrival')
         departure = data.get('departure')
+        departure = data.get('departure')
         occupancy = data.get('occupancy')
+        parking = data.get('parking')
 
         # 1. Create the Main Ticket (Standard Flow)
         try:
@@ -339,6 +341,8 @@ def create_ticket(request):
                  fields["Occupancy"] = int(occupancy)
              except (ValueError, TypeError):
                  pass
+        
+        if parking and parking != 'undefined': fields["Parking"] = parking
 
         payload = {
             "records": [{"fields": fields}],
@@ -810,6 +814,7 @@ def get_tickets(request):
                 'arrival': fields.get('Arrival'),
                 'departure': fields.get('Departure'),
                 'occupancy': str(fields.get('Occupancy')) if fields.get('Occupancy') else None,
+                'parking': fields.get('Parking'),
                 'apartmentId': fields.get('Apartment ID '),
                 'apartmentNumber': fields.get('Apartment Number '),
                 'teableId': record.get('id'), # Teable Record ID for updates
@@ -823,6 +828,300 @@ def get_tickets(request):
     except requests.RequestException as e:
         print(f"Error fetching tickets from Teable: {e}")
         return Response({'error': 'Failed to fetch tickets'}, status=500)
+
+@api_view(['GET'])
+def get_parking_requests(request):
+    TEABLE_TICKETS_URL = 'https://teable.namuve.com/api/table/tblt7O90EhETDjXraHk/record'
+    try:
+        # Construct Teable filter JSON based on user request
+        
+        # Updated Filter Logic to capture Staying Guests (spans) as well
+        # Logic:
+        # 1. Parking iNotEmpty
+        # AND
+        # 2. (
+        #       (Arrival <= Today AND Departure >= Today)  <-- Covers Check-in, Staying, Check-out
+        #       OR
+        #       Status is Closed (As per original request mostly likely so lost data isnt hidden)
+        #    )
+
+        filter_payload = {
+            "conjunction": "and",
+            "filterSet": [
+                {
+                    "fieldId": "Parking",
+                    "operator": "isNotEmpty",
+                    "value": None
+                },
+                {
+                    "conjunction": "or",
+                    "filterSet": [
+                        {
+                            "conjunction": "and",
+                            "filterSet": [
+                                {
+                                    "fieldId": "Arrival",
+                                    "operator": "isOnOrBefore",
+                                    "value": {
+                                        "mode": "today",
+                                        "timeZone": "Asia/Karachi"
+                                    }
+                                },
+                                {
+                                    "fieldId": "Departure",
+                                    "operator": "isOnOrAfter",
+                                    "value": {
+                                        "mode": "today",
+                                        "timeZone": "Asia/Karachi"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "fieldId": "Status ",
+                            "operator": "is",
+                            "value": "Closed"
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        params = {
+            'filter': json.dumps(filter_payload),
+            'limit': 1000
+        }
+
+        response = requests.get(TEABLE_TICKETS_URL, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}'
+        }, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        tickets = []
+        for record in data.get('records', []):
+            fields = record.get('fields', {})
+            
+            # Map fields to frontend Ticket interface
+            ticket = {
+                'id': str(fields.get('ID ')),
+                'type': fields.get('Ticket Type', 'Unknown'),
+                'title': fields.get('Title', 'No Title'),
+                'status': fields.get('Status ', 'Open'),
+                'priority': fields.get('Priority', 'Low'),
+                'created': fields.get('Created Time '),
+                'description': fields.get('Purpose', ''),
+                'arrival': fields.get('Arrival'),
+                'departure': fields.get('Departure'),
+                'occupancy': str(fields.get('Occupancy')) if fields.get('Occupancy') else None,
+                'parking': fields.get('Parking'),
+                # Try 'Check In' as per user report. Fallback to others if needed.
+                'checkIn': fields.get('Check In') or fields.get('Check In Time'),
+                'checkOut': fields.get('Check Out') or fields.get('Check Out Time'),
+                'parkingStatus': fields.get('Parking Status'),
+                'apartmentId': fields.get('Apartment ID '),
+                'apartmentNumber': fields.get('Apartment Number '),
+                'teableId': record.get('id'),
+            }
+            tickets.append(ticket)
+            
+        tickets.sort(key=lambda x: x['created'] or '', reverse=True)
+            
+        return Response({'tickets': tickets})
+    except requests.RequestException as e:
+        print(f"Error fetching parking tickets from Teable: {e}")
+        return Response({'error': 'Failed to fetch parking tickets'}, status=500)
+
+@api_view(['POST'])
+def create_parking_log(request):
+    try:
+        data = request.data
+        
+        # Mapping fields based on user request
+        # Ticket ID: fldvlN0UlLSwtyaPcW4 (number)
+        # Title: fldo5RydZB3Ulv8tIgn (text)
+        # Apartment Number: fldA0euiR2xzJutZaIy (number)
+        # Vehicle Number: fldVP0c5cW0IimBkS1a (text)
+        # Action: fld1amjYtDznOxBTuWY (text)
+
+        try:
+            ticket_id_int = int(data.get('ticket_id'))
+        except (ValueError, TypeError):
+             return Response({'error': 'Invalid Ticket ID'}, status=400)
+
+        # Apartment Number is text/string in Teable
+        apt_num_str = str(data.get('apartment_number') or '')
+        
+        # Check for ticket type to decide which table to log to
+        ticket_type = data.get('ticket_type')
+        
+        # Default Logic (Guest)
+        url = "https://teable.namuve.com/api/table/tblIevhB46wb8bWHHCT/record"
+        fields = {
+            "Ticket ID": ticket_id_int,
+            "Title": data.get('title'),
+            "Apartment Number": apt_num_str,
+             # Using provided ID for Vehicle Number
+            "Vehicle Number": data.get('vehicle_number') or '',
+            "Action": data.get('action')
+        }
+        
+        # Owner / Management Logic
+        if ticket_type and ticket_type.lower() in ['owner', 'management']:
+             url = "https://teable.namuve.com/api/table/tblBb60CCuy1rRxvJOB/record"
+             # This table does not have 'Ticket ID'. Using exact Field Names from schema.
+             fields = {
+                 "Title": data.get('title'),
+                 "Apartment Number": apt_num_str,
+                 "Vehicle Number": data.get('vehicle_number') or '',
+                 "Action": data.get('action')
+             }
+        
+        # Teable expects a 'records' array
+        payload = {
+            "records": [
+                {
+                    "fields": fields
+                }
+            ]
+        }
+        
+        response = requests.post(url, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}',
+             'Content-Type': 'application/json'
+        }, json=payload)
+        
+        # Check if successful
+        if response.status_code not in [200, 201]:
+             print(f"Teable Error: {response.text}")
+             print(f"Sent Payload: {json.dumps(payload)}")
+             return Response({'error': f'Failed to create record in Teable: {response.text}'}, status=response.status_code)
+             
+        return Response(response.json())
+        
+    except Exception as e:
+        print(f"Error creating parking log: {e}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_parking_history(request, ticket_id):
+    """
+    Fetches parking history for a given Ticket ID (number).
+    Table: tblIevhB46wb8bWHHCT
+    """
+    # Get type and title from query params
+    ticket_type = request.GET.get('type')
+    ticket_title = request.GET.get('title')
+    
+    # Default: Guest Table
+    url = 'https://teable.namuve.com/api/table/tblIevhB46wb8bWHHCT/record'
+    filter_field = "Ticket ID"
+    filter_value = int(ticket_id) if str(ticket_id).isdigit() else ticket_id
+    
+    # Owner / Management Logic
+    if ticket_type and ticket_type.lower() in ['owner', 'management']:
+         url = 'https://teable.namuve.com/api/table/tblBb60CCuy1rRxvJOB/record'
+         filter_field = "Title"
+         # Use the passed title, or fallback to ticket_id if title is missing (unlikely if frontend works)
+         filter_value = ticket_title if ticket_title else ticket_id
+
+    try:
+        # Search for records
+        filter_payload = {
+             "conjunction": "and",
+             "filterSet": [
+                 {
+                     "fieldId": filter_field, 
+                     "operator": "is",
+                     "value": filter_value
+                 }
+             ]
+        }
+        
+        search_params = {
+            'filter': json.dumps(filter_payload),
+            # 'orderBy': json.dumps([{ "field": "Created Time", "order": "desc" }]) # Optional: Teable might default to creation order
+        }
+        
+        response = requests.get(url, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}'
+        }, params=search_params)
+        
+        if response.status_code != 200:
+             return Response({'error': 'Failed to fetch parking history'}, status=response.status_code)
+             
+        data = response.json()
+        records = data.get('records', [])
+        
+        history = []
+        for r in records:
+            fields = r.get('fields', {})
+            history.append({
+                'id': r.get('id'),
+                'action': fields.get('Action'),
+                'time': fields.get('Created Time') or r.get('createdTime'), # Fallback to record metadata
+                'vehicle': fields.get('Vehicle Number'),
+                'apartment': fields.get('Apartment Number'),
+                'title': fields.get('Title'),
+                'ticketId': fields.get('Ticket ID')
+            })
+            
+        # Sort manually by time desc just in case
+        history.sort(key=lambda x: x['time'] or '', reverse=True)
+            
+        return Response(history)
+
+    except Exception as e:
+        print(f"Error fetching parking history: {e}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_owner_management_parking(request):
+    """
+    Fetches Owner/Management parking data from tblxOJ4jVOhzRCcSA1h
+    """
+    TEABLE_OWNER_MGMT_URL = 'https://teable.namuve.com/api/table/tblxOJ4jVOhzRCcSA1h/record'
+    
+    try:
+        response = requests.get(TEABLE_OWNER_MGMT_URL, headers={
+            'Authorization': f'Bearer {TEABLE_TOKEN}'
+        })
+        
+        if response.status_code != 200:
+            return Response({'error': 'Failed to fetch owner/management parking'}, status=response.status_code)
+        
+        data = response.json()
+        records = data.get('records', [])
+        
+        tickets = []
+        for record in records:
+            fields = record.get('fields', {})
+            
+            # Map fields from the Owner/Management table
+            ticket = {
+                'id': fields.get('ID'),  # Auto number ID
+                'teableId': record.get('id'),  # Teable record ID
+                'title': fields.get('Title', ''),
+                'parking': fields.get('Parking', ''),
+                'parkingStatus': fields.get('Parking Status', ''),
+                'type': fields.get('Type', ''),  # Owner or Management
+                'apartmentId': fields.get('Apartment Number', ''),
+                'created': fields.get('Created time') or record.get('createdTime'),
+                # Set dummy values for fields that don't exist in this table
+                'arrival': None,
+                'departure': None,
+                'checkIn': None,
+                'checkOut': None,
+                'status': 'Active'  # Default status
+            }
+            tickets.append(ticket)
+        
+        return Response({'tickets': tickets})
+        
+    except Exception as e:
+        print(f"Error fetching owner/management parking: {e}")
+        return Response({'error': str(e)}, status=500)
+
 
 @api_view(['GET'])
 def get_linked_records(request):
@@ -1576,32 +1875,97 @@ def reset_password_proxy(request):
 def update_ticket(request, record_id):
     """
     Updates a ticket in Teable.
-    Payload: { "teable_id": "rec...", "fields": { "Status ": "Closed", ... } }
+    Payload: { "teable_id": "rec...", "fields": { "Status ": "Closed", ... }, "ticket_id": "123" }
     """
     TEABLE_TICKETS_URL = 'https://teable.namuve.com/api/table/tblt7O90EhETDjXraHk/record'
     
     try:
-        teable_id = request.data.get('teable_id')
+        # Prefer record_id from URL if provided and looks valid, else fall back to body
+        teable_id = record_id if record_id and record_id != 'undefined' else request.data.get('teable_id')
         fields_to_update = request.data.get('fields')
-        
+        ticket_id_ref = request.data.get('ticket_id') # Fallback search ID (The "Name")
+        ticket_type = request.data.get('ticket_type')
+
         if not teable_id or not fields_to_update:
-            return Response({'error': 'Teable ID and fields are required'}, status=400)
-            
-        url = f"{TEABLE_TICKETS_URL}/{teable_id}"
+             # If teable_id is missing but we have ticket_id_ref, we can search directly
+             if not ticket_id_ref:
+                return Response({'error': 'Teable ID (or Ticket ID) and fields are required'}, status=400)
         
-        payload = {
-            "record": {
-                "fields": fields_to_update
-            },
-            "fieldKeyType": "name"
-        }
+        # Helper to perform update
+        def perform_update(target_rec_id):
+            base_url = TEABLE_TICKETS_URL
+             # Switch URL based on ticket_type
+            if ticket_type and ticket_type.lower() in ['owner', 'management']:
+                base_url = 'https://teable.namuve.com/api/table/tblxOJ4jVOhzRCcSA1h/record'
+
+            url = f"{base_url}/{target_rec_id}"
+            payload = {
+                "record": {
+                    "fields": fields_to_update
+                },
+                "fieldKeyType": "name"
+            }
+            return requests.patch(url, headers={
+                'Authorization': f'Bearer {TEABLE_TOKEN}',
+                'Content-Type': 'application/json'
+            }, json=payload)
+
+        # 1. Try Direct Update if we have a Record ID
+        if teable_id and teable_id.startswith('rec'):
+             response = perform_update(teable_id)
+             if response.status_code in [200, 201]:
+                  # Success
+                  pass 
+             elif response.status_code == 404 and ticket_id_ref:
+                  # 404 Not Found, try fallback search
+                  print(f"Direct update failed for {teable_id} (404). Searching for Ticket ID: {ticket_id_ref}")
+                  teable_id = None # Reset to trigger search
+             else:
+                  # Other error, raise it
+                  response.raise_for_status()
+                  return Response(response.json())
         
-        response = requests.patch(url, headers={
-            'Authorization': f'Bearer {TEABLE_TOKEN}',
-            'Content-Type': 'application/json'
-        }, json=payload)
+        # 2. Fallback Search logic (if teable_id is None/Invalid or 404 match failed)
+        if (not teable_id or not teable_id.startswith('rec')) and ticket_id_ref:
+             # Search for the record by Ticket ID
+             print(f"Searching for record with Ticket ID: {ticket_id_ref}")
+             
+             # Construct proper Teable filter payload
+             filter_payload = {
+                 "conjunction": "and",
+                 "filterSet": [
+                     {
+                         "fieldId": "ID ",
+                         "operator": "is",
+                         "value": int(ticket_id_ref) if str(ticket_id_ref).isdigit() else ticket_id_ref
+                     }
+                 ]
+             }
+             
+             search_params = {
+                 'filter': json.dumps(filter_payload)
+             }
+             
+             # Note: Using filter instead of search param for precision
+             search_res = requests.get(TEABLE_TICKETS_URL, headers={'Authorization': f'Bearer {TEABLE_TOKEN}'}, params=search_params)
+             if search_res.status_code == 200:
+                 search_data = search_res.json()
+                 records = search_data.get('records', [])
+                 if records:
+                     teable_id = records[0]['id']
+                     print(f"Found record {teable_id} for Ticket ID {ticket_id_ref}")
+                     # Retry Update
+                     response = perform_update(teable_id)
+                     response.raise_for_status()
+                 else:
+                     return Response({'error': f"Record not found for Ticket ID: {ticket_id_ref}"}, status=404)
+             else:
+                 print(f"Teable Search Error: {search_res.text}")
+                 return Response({'error': f'Failed to search for ticket: {search_res.text}'}, status=search_res.status_code)
         
-        response.raise_for_status()
+        if not teable_id:
+             return Response({'error': 'Could not identify record to update'}, status=400)
+
         
         # LOGGING ACTION: Ticket Updated
         apt_num_log = request.data.get('apartment_number')
@@ -1609,6 +1973,10 @@ def update_ticket(request, record_id):
         
         if apt_num_log:
              new_status = fields_to_update.get('Status ')
+             # Handle Parking Status Update Log
+             if not new_status:
+                  new_status = fields_to_update.get('Parking Status')
+             
              print(f"DEBUG: Status Update: {new_status}")
              log_status = new_status if new_status else "Unchanged"
              
@@ -1629,7 +1997,10 @@ def update_ticket(request, record_id):
         
     except requests.RequestException as e:
         print(f"Error updating ticket: {e}")
-        return Response({'error': f"Failed to update ticket: {str(e)}"}, status=500)
+        error_details = str(e)
+        if e.response is not None:
+             error_details += f" | Response: {e.response.text}"
+        return Response({'error': f"Failed to update ticket: {error_details}"}, status=500)
 
 @api_view(['PATCH'])
 def update_linked_record(request):

@@ -143,6 +143,9 @@ export const updateTicket = async (teableId: string, updates: Partial<Ticket>, a
         if (updates.occupancy) fields["Occupancy"] = parseInt(updates.occupancy as string); // Assuming occupancy can be string from input
         if (updates.arrival) fields["Arrival"] = updates.arrival;
         if (updates.departure) fields["Departure"] = updates.departure;
+        if (updates.checkIn) fields["Check In"] = updates.checkIn;
+        if (updates.checkOut) fields["Check Out"] = updates.checkOut;
+        if (updates.parkingStatus) fields["Parking Status"] = updates.parkingStatus;
 
         const response = await fetch(`${API_BASE_URL}/update-ticket/${teableId}/`, {
             method: 'PATCH',
@@ -236,6 +239,82 @@ export const fetchTicketsByRoom = async (apartmentId: string): Promise<Ticket[]>
     }
 };
 
+export const fetchParkingTickets = async (): Promise<Ticket[]> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/parking-requests/`);
+        if (response.ok) {
+            const data = await response.json();
+            return data.tickets || [];
+        } else {
+            console.error('Failed to fetch parking tickets');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching parking tickets:', error);
+        return [];
+    }
+};
+
+export const createParkingLog = async (data: {
+    ticket_id: string | number;
+    title: string;
+    apartment_number: string | number;
+    vehicle_number: string;
+    action: 'In' | 'Out';
+    ticket_type?: string;
+}) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/parking-log/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to create parking log');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error creating parking log:", error);
+        throw error;
+    }
+};
+
+export const fetchParkingHistory = async (ticketId: string, type?: string, title?: string) => {
+    try {
+        const queryParams = new URLSearchParams();
+        if (type) queryParams.append('type', type);
+        if (title) queryParams.append('title', title);
+
+        const response = await fetch(`${API_BASE_URL}/parking-history/${ticketId}/?${queryParams.toString()}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch history: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching parking history:", error);
+        throw error;
+    }
+};
+
+export const fetchOwnerManagementParking = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/owner-management-parking/`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch owner/management parking: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return data.tickets || [];
+    } catch (error) {
+        console.error('Error fetching owner/management parking:', error);
+        return [];
+    }
+};
+
 export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 'status'>, apartmentId: string | number, ticketOptions: string[] = [], maintenanceOptions: string[] = [], username?: string, apartmentNumber?: string) => {
     try {
         // Use FormData to allow file uploads
@@ -269,6 +348,7 @@ export const createTicket = async (newTicket: Omit<Ticket, 'id' | 'created' | 's
         if (newTicket.arrival) formData.append('arrival', newTicket.arrival);
         if (newTicket.departure) formData.append('departure', newTicket.departure);
         if (newTicket.occupancy) formData.append('occupancy', String(newTicket.occupancy));
+        if (newTicket.parking) formData.append('parking', newTicket.parking);
         if (newTicket.agent) {
             formData.append('agent', newTicket.agent);
         }

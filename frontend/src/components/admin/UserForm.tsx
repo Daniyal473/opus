@@ -197,8 +197,9 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit }) => {
                         className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition"
                     >
                         <option value="user">User</option>
-                        <option value="admin">Admin</option>
+                        <option value="Admin">Admin</option>
                         <option value="FDO">FDO</option>
+                        <option value="Security">Security</option>
                         <option value="super-admin">Super Admin</option>
                     </select>
                 </div>
