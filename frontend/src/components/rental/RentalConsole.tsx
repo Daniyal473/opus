@@ -5,7 +5,7 @@ import { RoomGrid } from './RoomGrid';
 import { PropertySidebar } from './PropertySidebar';
 import { TicketRequestView } from '../admin/TicketRequestView';
 
-import { Settings, User, Bell, Search, CheckCircle2, Info, Clock, Car } from 'lucide-react';
+import { Settings, User, Bell, Search, CheckCircle2, Info, Clock } from 'lucide-react';
 import opusLogo from '../../assets/opus-logo.jpg';
 import type { RoomCardData, Ticket } from '../../types/rental';
 import { API_BASE_URL } from '../../services/api';
