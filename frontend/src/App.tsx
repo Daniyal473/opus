@@ -93,7 +93,7 @@ function App() {
 
   // Inactivity timer
   useEffect(() => {
-    if (currentPage !== 'dashboard' && currentPage !== 'admin') return;
+    if (['signin', 'forgot-password', 'reset-password'].includes(currentPage)) return;
 
     let inactivityTimer: ReturnType<typeof setTimeout>;
 

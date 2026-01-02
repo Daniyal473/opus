@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, RefreshCw, Eye, User, Calendar, Building, Car, CheckCircle, LogOut } from 'lucide-react';
+import { useDataCache } from '../../hooks/useDataCache';
+import { ArrowLeft, RefreshCw, Eye, User, Calendar, Building, Car, CheckCircle, LogOut, Search } from 'lucide-react';
 import { fetchParkingTickets, fetchApartmentData, updateTicket, fetchParkingHistory, fetchOwnerManagementParking } from '../../services/teable';
 import type { Ticket } from '../../types/rental';
 import { TicketDialog } from './TicketDialog';
@@ -12,8 +13,10 @@ interface FDOPanelViewProps {
 
 const GUEST_COLUMNS = [
     { id: 'upcoming-check-in', label: 'Upcoming Stay', color: 'bg-blue-50 border-blue-200', headerColor: 'text-black' },
+    { id: 'checked-in', label: 'Checked In', color: 'bg-indigo-50 border-indigo-200', headerColor: 'text-black' },
     { id: 'staying-guest', label: 'Staying Guest', color: 'bg-green-50 border-green-200', headerColor: 'text-black' },
     { id: 'upcoming-check-out', label: 'Upcoming Check-out', color: 'bg-orange-50 border-orange-200', headerColor: 'text-black' },
+    { id: 'checked-out', label: 'Checked Out', color: 'bg-red-50 border-red-200', headerColor: 'text-black' },
 ];
 
 const OWNER_COLUMNS = [
@@ -34,10 +37,11 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
     const [showEditDialog, setShowEditDialog] = useState(false);
 
     const [activeTab, setActiveTab] = useState<'guest' | 'owner'>('guest');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const loadData = async () => {
-        setIsLoading(true);
-        try {
+    const { data: cachedData, isLoading: isCacheLoading, refetch } = useDataCache<{ tickets: Ticket[], roomMap: Record<string, RoomInfo> }>(
+        'fdo_panel_data',
+        async () => {
             const [ticketsData, apartmentsData, ownerMgmtData] = await Promise.all([
                 fetchParkingTickets(),
                 fetchApartmentData(),
@@ -49,27 +53,30 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
             apartmentsData.forEach(apt => {
                 const name = apt.fields['Apartment Number '] || apt.fields['Apartment ID'] || apt.id;
                 const lease = apt.fields['Category'] || 'Unknown';
-
                 const info = { name: String(name), lease: String(lease) };
-
                 if (apt.fields['Apartment ID']) map[apt.fields['Apartment ID']] = info;
                 map[apt.id] = info;
             });
-            setRoomMap(map);
 
             // Combine guest tickets and owner/management tickets
             const allTickets = [...ticketsData, ...ownerMgmtData];
-            setTickets(allTickets);
-        } catch (error) {
-            console.error("Error loading data:", error);
-        } finally {
-            setIsLoading(false);
+
+            return { tickets: allTickets, roomMap: map };
+        },
+        120000 // 2 minutes
+    );
+
+    // Sync Cache to State
+    useEffect(() => {
+        if (cachedData) {
+            setTickets(cachedData.tickets);
+            setRoomMap(cachedData.roomMap);
         }
-    };
+    }, [cachedData]);
 
     useEffect(() => {
-        loadData();
-    }, []);
+        setIsLoading(isCacheLoading);
+    }, [isCacheLoading]);
 
     const handleCardClick = (ticket: Ticket) => {
         setSelectedTicket(ticket);
@@ -77,7 +84,7 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
     };
 
     const handleTicketUpdate = (updatedTicket?: Ticket) => {
-        loadData();
+        refetch();
         if (updatedTicket && onTicketUpdated) {
             onTicketUpdated(updatedTicket.id);
         }
@@ -91,7 +98,7 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
         try {
             const now = new Date().toISOString();
             await updateTicket(ticket.teableId, { checkIn: now });
-            await loadData();
+            refetch();
         } catch (error) {
             console.error("Failed to check in:", error);
             alert("Failed to mark check-in");
@@ -107,7 +114,7 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
         try {
             const now = new Date().toISOString();
             await updateTicket(ticket.teableId, { checkOut: now });
-            await loadData();
+            refetch();
         } catch (error) {
             console.error("Failed to check out:", error);
             alert("Failed to mark check-out");
@@ -138,7 +145,46 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
         }
     };
 
+    // Helper to format date nicely (e.g., "1 Jan, 2026")
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return 'N/A';
+        try {
+            return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch { return dateStr; }
+    };
+
+    const formatDateTime = (dateStr?: string) => {
+        if (!dateStr) return '-';
+        try {
+            return new Date(dateStr).toLocaleString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch { return dateStr; }
+    };
+
     const getColumns = () => activeTab === 'guest' ? GUEST_COLUMNS : OWNER_COLUMNS;
+
+    const filteredTickets = tickets.filter(ticket => {
+        if (!searchTerm) return true;
+        const term = searchTerm.toLowerCase();
+        const roomName = roomMap[String(ticket.apartmentId)]?.name || ticket.apartmentId || '';
+        const arrivalDate = formatDate(ticket.arrival);
+        const departureDate = formatDate(ticket.departure);
+
+        return (
+            String(ticket.id).toLowerCase().includes(term) ||
+            (ticket.title || '').toLowerCase().includes(term) ||
+            (ticket.parking || '').toLowerCase().includes(term) ||
+            String(roomName).toLowerCase().includes(term) ||
+            (ticket.type || '').toLowerCase().includes(term) ||
+            (arrivalDate || '').toLowerCase().includes(term) ||
+            (departureDate || '').toLowerCase().includes(term)
+        );
+    });
 
     const getTicketsForColumn = (columnId: string, allTickets: Ticket[]) => {
         const today = new Date();
@@ -152,17 +198,31 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
                 if (hasOwnerMgmtType) return false;
 
                 const todayStr = new Date().toLocaleDateString('en-CA');
-                const departureStr = t.departure ? t.departure.split('T')[0] : null;
+
+                // Helper to convert UTC string to Local YYYY-MM-DD
+                const toLocalYMD = (dateStr?: string) => dateStr ? new Date(dateStr).toLocaleDateString('en-CA') : null;
+
+                const arrivalDateStr = toLocalYMD(t.arrival);
+                const departureStr = toLocalYMD(t.departure);
 
                 const isCheckInNotEmpty = !!t.checkIn && t.checkIn.trim() !== '';
-                const isDepartureToday = departureStr === todayStr;
+                const isCheckOutNotEmpty = !!t.checkOut && t.checkOut.trim() !== '';
 
                 if (columnId === 'upcoming-check-in') {
                     return !isCheckInNotEmpty;
+                } else if (columnId === 'checked-in') {
+                    // Check In exists AND Arrival is Today AND Not Checked Out AND Departure NOT Today
+                    return isCheckInNotEmpty && arrivalDateStr === todayStr && !isCheckOutNotEmpty && departureStr !== todayStr;
                 } else if (columnId === 'staying-guest') {
-                    return isCheckInNotEmpty && !isDepartureToday;
+                    // Check In exists AND Arrival < Today AND Departure > Today
+                    if (!arrivalDateStr || !departureStr) return false;
+                    return isCheckInNotEmpty && arrivalDateStr < todayStr && departureStr > todayStr;
                 } else if (columnId === 'upcoming-check-out') {
-                    return isCheckInNotEmpty && isDepartureToday;
+                    // Departure is Today AND Check Out does NOT exist
+                    return isCheckInNotEmpty && departureStr === todayStr && !isCheckOutNotEmpty;
+                } else if (columnId === 'checked-out') {
+                    // Departure is Today AND Check Out exists
+                    return isCheckOutNotEmpty && departureStr === todayStr;
                 }
                 return false;
             });
@@ -185,29 +245,10 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
 
     const columns = getColumns();
 
-    // Helper to format date nicely (e.g., "1 Jan, 2026")
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return 'N/A';
-        try {
-            return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        } catch { return dateStr; }
-    };
 
-    const formatDateTime = (dateStr?: string) => {
-        if (!dateStr) return '-';
-        try {
-            return new Date(dateStr).toLocaleString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-        } catch { return dateStr; }
-    };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+        <div className="h-screen overflow-hidden bg-gray-50 flex flex-col font-sans">
             <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm relative">
                 <div className="flex items-center gap-4">
                     <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
@@ -216,7 +257,8 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
                     <h1 className="text-xl font-bold text-gray-800">Ticket Requests</h1>
                 </div>
 
-                <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex bg-gray-100 p-1 rounded-lg">
+                {/* Center: Tabs */}
+                <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-100 p-1 rounded-lg flex shrink-0">
                     <button
                         onClick={() => setActiveTab('guest')}
                         className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'guest'
@@ -233,12 +275,26 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
                             : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
-                        Owner/Management
+                        Owner
                     </button>
                 </div>
 
-                <div className="flex items-center">
-                    <button onClick={() => loadData()} className="p-2 text-gray-500 hover:text-gray-700">
+                {/* Right: Search + Refresh */}
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="relative w-64">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search size={16} className="text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search tickets..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="block w-full pl-10 pr-3 py-1.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                        />
+                    </div>
+
+                    <button onClick={() => refetch()} className="p-2 text-gray-500 hover:text-gray-700 transition-colors rounded-full hover:bg-gray-100">
                         <RefreshCw size={20} />
                     </button>
                 </div>
@@ -252,7 +308,8 @@ export function FDOPanelView({ onBack, role, onTicketUpdated }: FDOPanelViewProp
                 ) : (
                     <div className="flex gap-6 h-full min-w-max">
                         {columns.map(col => {
-                            const colTickets = getTicketsForColumn(col.id, tickets);
+                            const colTickets = getTicketsForColumn(col.id, filteredTickets);
+                            if (colTickets.length === 0) return null;
                             return (
                                 <div key={col.id} className={`flex-shrink-0 w-96 flex flex-col rounded-xl border ${col.color} bg-opacity-40`}>
                                     <div className={`p-4 font-bold text-lg ${col.headerColor || 'text-gray-700'} border-b border-gray-200/50 flex justify-between items-center`}>

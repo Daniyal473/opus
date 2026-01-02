@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDataCache } from '../../hooks/useDataCache';
 import { ArrowLeft, Plus, RefreshCw, Eye } from 'lucide-react';
 import { fetchApartmentData, fetchTicketsByRoom, createTicket, type TeableRecord } from '../../services/teable';
 import { API_BASE_URL } from '../../services/api';
@@ -91,35 +92,36 @@ export function GuestManagementView({ onBack, username, role, onTicketCreated }:
         }
     }, [selectedTicket, showEditDialog]);
 
-    // Initial Load: Fetch Rooms managed by user
+    // 1. Fetched Managed Rooms (Cache)
+    const { data: cachedRooms, isLoading: isRoomsLoading } = useDataCache<TeableRecord[]>(
+        `guest_managed_rooms_${username || 'anon'}`,
+        async () => {
+            if (!username) return [];
+            const records = await fetchApartmentData();
+            // Filter where 'Managed by' == username
+            return records.filter(r => {
+                const manager = r.fields['Managed by'];
+                return String(manager).trim() === String(username).trim();
+            });
+        },
+        120000,
+        [username]
+    );
+
+    // Sync Rooms & Auto-Select
     useEffect(() => {
-        const loadRooms = async () => {
-            if (!username) return;
-            setIsLoading(true);
-            try {
-                const records = await fetchApartmentData();
-                // Filter where 'Managed by' == username
-                // Note: Field name is 'Managed by'
-                const managedRooms = records.filter(r => {
-                    const manager = r.fields['Managed by'];
-                    return String(manager).trim() === String(username).trim();
-                });
-
-                setMyRooms(managedRooms);
-
-                // Auto-select first room
-                if (managedRooms.length > 0) {
-                    const firstId = managedRooms[0].fields['Apartment ID'];
-                    if (firstId) setSelectedRoomId(String(firstId));
-                }
-            } catch (error) {
-                console.error("Error loading rooms:", error);
-            } finally {
-                setIsLoading(false);
+        if (cachedRooms) {
+            setMyRooms(cachedRooms);
+            // Auto-select first room if none selected
+            if (cachedRooms.length > 0 && !selectedRoomId) {
+                const firstId = cachedRooms[0].fields['Apartment ID'];
+                if (firstId) setSelectedRoomId(String(firstId));
             }
-        };
+        }
+    }, [cachedRooms]); // Removed selectedRoomId from deps to avoid loop/reset if user changes it? No, if cachedRooms updates we might re-select? check logic. 
+    // Logic: if !selectedRoomId. If user clears it? or initial load. It's fine.
 
-
+    useEffect(() => {
         const fetchAgentOptions = async () => {
             try {
                 const response = await fetch(`${API_BASE_URL}/agents/`);
@@ -133,33 +135,32 @@ export function GuestManagementView({ onBack, username, role, onTicketCreated }:
                 console.error('Error fetching agent options:', error);
             }
         };
-
-        loadRooms();
         fetchAgentOptions();
-    }, [username]);
+    }, []);
 
-    // Fetch tickets when selected room changes
-    const loadTickets = async () => {
-        if (!selectedRoomId) {
-            setTickets([]);
-            return;
-        }
-        setIsLoading(true);
-        try {
+    // 2. Fetch Tickets for Selected Room (Cache)
+    const { data: cachedTickets, isLoading: isTicketsLoading, refetch: refetchTickets } = useDataCache<Ticket[]>(
+        `guest_room_tickets_${selectedRoomId || 'none'}`,
+        async () => {
+            if (!selectedRoomId) return [];
             const data = await fetchTicketsByRoom(selectedRoomId);
             // Client-side sort by date desc
-            const sorted = data.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
-            setTickets(sorted);
-        } catch (error) {
-            console.error("Error loading tickets:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+            return data.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
+        },
+        120000,
+        [selectedRoomId]
+    );
 
     useEffect(() => {
-        loadTickets();
-    }, [selectedRoomId]);
+        if (cachedTickets) {
+            setTickets(cachedTickets);
+        }
+    }, [cachedTickets]);
+
+    // Consolidate Loading State
+    useEffect(() => {
+        setIsLoading(isRoomsLoading || isTicketsLoading);
+    }, [isRoomsLoading, isTicketsLoading]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -197,7 +198,7 @@ export function GuestManagementView({ onBack, username, role, onTicketCreated }:
             onTicketCreated?.(); // Trigger toast
             setPendingTicketData(null);
             setIsConfirmOpen(false);
-            loadTickets(); // Refresh
+            refetchTickets(); // Refresh
         } catch (error) {
             console.error("Failed to create ticket:", error);
             alert("Failed to create ticket.");
@@ -394,7 +395,7 @@ export function GuestManagementView({ onBack, username, role, onTicketCreated }:
                 isOpen={showEditDialog}
                 onClose={() => setShowEditDialog(false)}
                 ticket={selectedTicket}
-                onUpdate={loadTickets}
+                onUpdate={refetchTickets}
                 role={role}
             />
 

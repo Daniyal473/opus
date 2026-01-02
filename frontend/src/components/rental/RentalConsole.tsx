@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useDataCache } from '../../hooks/useDataCache';
 import { fetchApartmentData, fetchTickets, transformRecordToRoomCard, extractFloors, type TeableRecord } from '../../services/teable';
 import { FloorSelector } from './FloorSelector';
 import { RoomGrid } from './RoomGrid';
@@ -308,27 +309,30 @@ export function RentalConsole({ onLogout, onAdminPanelClick, onTicketRequestClic
         return [{ code: 'all', name: 'All' }, ...dynamicFloors];
     }, [filteredRecordsByUser]);
 
-    // Fetch floors and rooms from API
+    // Fetch floors and rooms from API with Cache (2 mins)
+    const { data: cachedData, isLoading: isCacheLoading } = useDataCache<{ records: TeableRecord[], tickets: Ticket[] }>(
+        'dashboard_data',
+        async () => {
+            const [records, tickets] = await Promise.all([
+                fetchApartmentData(),
+                fetchTickets()
+            ]);
+            console.log('Fetched Fresh Data');
+            return { records, tickets };
+        },
+        120000 // 2 minutes
+    );
+
     useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            try {
-                const [records, tickets] = await Promise.all([
-                    fetchApartmentData(),
-                    fetchTickets()
-                ]);
-                console.log('Raw Records from API:', records);
-                console.log('Tickets from API:', tickets);
-                setAllRecords(records);
-                setAllTickets(tickets);
-            } catch (error) {
-                console.error("Failed to load data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        loadData();
-    }, []);
+        if (cachedData) {
+            setAllRecords(cachedData.records);
+            setAllTickets(cachedData.tickets);
+        }
+    }, [cachedData]);
+
+    useEffect(() => {
+        setIsLoading(isCacheLoading);
+    }, [isCacheLoading]);
 
 
 

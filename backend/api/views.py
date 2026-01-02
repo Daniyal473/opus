@@ -845,6 +845,11 @@ def get_parking_requests(request):
         #       Status is Closed (As per original request mostly likely so lost data isnt hidden)
         #    )
 
+        # Updated Filter Logic:
+        # 1. Parking isNotEmpty
+        # 2. Status is 'Approved' (User Requirement)
+        # 3. Date Range (Active Today)
+
         filter_payload = {
             "conjunction": "and",
             "filterSet": [
@@ -854,33 +859,28 @@ def get_parking_requests(request):
                     "value": None
                 },
                 {
-                    "conjunction": "or",
+                    "fieldId": "Status ",
+                    "operator": "is",
+                    "value": "Approved"
+                },
+                {
+                    "conjunction": "and",
                     "filterSet": [
                         {
-                            "conjunction": "and",
-                            "filterSet": [
-                                {
-                                    "fieldId": "Arrival",
-                                    "operator": "isOnOrBefore",
-                                    "value": {
-                                        "mode": "today",
-                                        "timeZone": "Asia/Karachi"
-                                    }
-                                },
-                                {
-                                    "fieldId": "Departure",
-                                    "operator": "isOnOrAfter",
-                                    "value": {
-                                        "mode": "today",
-                                        "timeZone": "Asia/Karachi"
-                                    }
-                                }
-                            ]
+                            "fieldId": "Arrival",
+                            "operator": "isOnOrBefore",
+                            "value": {
+                                "mode": "today",
+                                "timeZone": "Asia/Karachi"
+                            }
                         },
                         {
-                            "fieldId": "Status ",
-                            "operator": "is",
-                            "value": "Closed"
+                            "fieldId": "Departure",
+                            "operator": "isOnOrAfter",
+                            "value": {
+                                "mode": "today",
+                                "timeZone": "Asia/Karachi"
+                            }
                         }
                     ]
                 }

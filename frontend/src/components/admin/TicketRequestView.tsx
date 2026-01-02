@@ -1,5 +1,6 @@
 import './TicketRequestView.css';
 import { useState, useEffect } from 'react';
+import { useDataCache } from '../../hooks/useDataCache';
 import { ArrowLeft, Eye } from 'lucide-react';
 import { fetchTickets, updateTicket, fetchApartmentData } from '../../services/teable';
 import { API_BASE_URL } from '../../services/api';
@@ -103,41 +104,44 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated, pag
 
 
 
-    const loadData = async (start?: string, end?: string) => {
-        setIsLoading(true);
-        try {
-            // Use current state if not passed args (args used for initial load or button click)
-            const s = start !== undefined ? start : startDate;
-            const e = end !== undefined ? end : endDate;
+    // State for Active Search Params (to trigger cache update only on 'Start')
+    const [activeParams, setActiveParams] = useState({ start: startDate, end: endDate });
 
-            // Fetch Data in parallel
+    const { data: cachedData, isLoading: isCacheLoading, refetch } = useDataCache<{ tickets: Ticket[], roomMap: Record<string, string> }>(
+        `ticket_requests_${activeParams.start}_${activeParams.end}`,
+        async () => {
             const [ticketsData, apartmentsData] = await Promise.all([
-                fetchTickets(s, e),
+                fetchTickets(activeParams.start, activeParams.end),
                 fetchApartmentData()
             ]);
 
             // Create Room Map
             const map: Record<string, string> = {};
             apartmentsData.forEach(apt => {
-                // Use 'Apartment Number ' (with space) or fallback
                 const name = apt.fields['Apartment Number '] || apt.fields['Apartment ID'] || apt.id;
-                // Map by both 'Apartment ID' (internal string ID) and record ID to be safe
                 if (apt.fields['Apartment ID']) map[apt.fields['Apartment ID']] = String(name);
                 map[apt.id] = String(name);
             });
-            setRoomMap(map);
 
-            // Sort Tickets by date desc
+            // Sort Tickets
             const sorted = ticketsData.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
-            setTickets(sorted);
 
+            return { tickets: sorted, roomMap: map };
+        },
+        120000 // 2 minutes
+    );
 
-        } catch (error) {
-            console.error("Error loading ticket requests:", error);
-        } finally {
-            setIsLoading(false);
+    // Sync Cache to State
+    useEffect(() => {
+        if (cachedData) {
+            setTickets(cachedData.tickets);
+            setRoomMap(cachedData.roomMap);
         }
-    };
+    }, [cachedData]);
+
+    useEffect(() => {
+        setIsLoading(isCacheLoading);
+    }, [isCacheLoading]);
 
     // Fetch Options on Mount
     useEffect(() => {
@@ -168,9 +172,10 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated, pag
         fetchOptions();
     }, []);
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    // Initial load handled by hook
+    // useEffect(() => {
+    //     loadData();
+    // }, []);
 
     const handleSearch = () => {
         if (!startDate || !endDate) {
@@ -193,7 +198,8 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated, pag
             return;
         }
 
-        loadData(startDate, endDate);
+        // Update active params to trigger refetch via hook key change
+        setActiveParams({ start: startDate, end: endDate });
     };
 
     const getStatusColor = (status: string) => {
@@ -239,7 +245,7 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated, pag
             setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
             if (onTicketUpdated) onTicketUpdated(updatedTicket.id);
         } else {
-            loadData();
+            refetch();
             // Don't trigger toast here - TicketDialog calls onUpdate twice
         }
     };
@@ -284,6 +290,9 @@ export function TicketRequestView({ onBack, role, username, onTicketUpdated, pag
                         >
                             Start
                         </button>
+                        <span className="text-xs text-gray-500 ml-2 italic">
+                            (Based on Created Date)
+                        </span>
                     </div>
                     <div className="ticket-request-search-wrapper">
                         <input
